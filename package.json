@@ -1,0 +1,102 @@
+{
+  "name": "@powerduck/oas-document",
+  "version": "0.1.0",
+  "description": "Production-grade OpenAPI documentation component. Pass an OAS document and get a full API documentation UI with tree navigation, auto-upgrade to OAS 3.2, and code examples.",
+  "license": "MIT",
+  "author": "powerduck",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./react": {
+      "types": "./dist/react/index.d.ts",
+      "import": "./dist/react/index.js",
+      "require": "./dist/react/index.cjs"
+    },
+    "./react/index.css": {
+      "import": "./dist/react/index.css",
+      "require": "./dist/react/index.css",
+      "default": "./dist/react/index.css"
+    },
+    "./core": {
+      "types": "./dist/core/index.d.ts",
+      "import": "./dist/core/index.js",
+      "require": "./dist/core/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": [
+    "*.css"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "clean": "rm -rf dist coverage",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "prepublishOnly": "npm run typecheck && npm run build && npm run test"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "@powerduck/md-editor": "^0.11.4",
+    "@powerduck/openapi-codegen": "^0.6.2",
+    "@powerduck/openapi-parser": "^0.3.5",
+    "@powerduck/tree": "^0.7.4",
+    "react-icons": "^5.0.0"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.0.0",
+    "@testing-library/react": "^14.0.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "jsdom": "^24.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "terser": "^5.51.2",
+    "tsup": "^8.0.0",
+    "typescript": "^5.3.0",
+    "vitest": "^1.2.0"
+  },
+  "keywords": [
+    "openapi",
+    "oas",
+    "oas3.2",
+    "api-documentation",
+    "api-docs",
+    "swagger",
+    "react",
+    "tree",
+    "documentation",
+    "powerduck"
+  ],
+  "homepage": "https://www.powerduck.com",
+  "publishConfig": {
+    "access": "public"
+  }
+}
