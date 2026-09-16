@@ -2,36 +2,38 @@
 
 Production-grade OpenAPI documentation component for React. Pass an OAS document and get a full Stripe-style API documentation UI with header navigation, light/dark themes, tree navigation, scroll-spy, schema exploration, and multi-language code examples.
 
-Built on top of [`@powerduck/openapi-parser`](https://www.npmjs.com/package/@powerduck/openapi-parser) for validation and upgrade, [`@powerduck/tree`](https://www.npmjs.com/package/@powerduck/tree) for navigation, [`@powerduck/md-editor`](https://www.npmjs.com/package/@powerduck/md-editor) for Markdown rendering, and [`@powerduck/openapi-codegen`](https://www.npmjs.com/package/@powerduck/openapi-codegen) for request code generation.
+Built on [`@powerduck/openapi-parser`](https://www.npmjs.com/package/@powerduck/openapi-parser) (validation + auto-upgrade), [`@powerduck/tree`](https://www.npmjs.com/package/@powerduck/tree) (navigation), [`@powerduck/md-editor`](https://www.npmjs.com/package/@powerduck/md-editor) (Markdown rendering), and [`@powerduck/openapi-codegen`](https://www.npmjs.com/package/@powerduck/openapi-codegen) (request code generation).
 
 [https://www.powerduck.com](https://www.powerduck.com)
 
 ## Features
 
-- **Drop-in API documentation** — pass any Swagger 2.0 / OpenAPI 3.x document (object, JSON string, or YAML string)
+- **Drop-in API documentation** — accepts a parsed object, JSON string, or YAML string (Swagger 2.0 / OpenAPI 3.x)
 - **Stripe-style layout** — configurable header (logo, title, nav links, theme toggle), sidebar tree, two-column operation view with sticky code panel
-- **Light / dark themes** — toggle in the header, all colors resolve through CSS variables
+- **Light / dark themes** — toggle in the header; selection persists to `localStorage`
 - **Auto-upgrade to OAS 3.2** — validates and upgrades via `@powerduck/openapi-parser` (toggleable, default on)
-- **Scroll-spy navigation** — passive scroll listener with binary search over section positions, auto-locates operations in the tree
-- **Markdown rendering** — operation descriptions and field docs rendered via `@powerduck/md-editor` (code highlighting, tips admonitions)
-- **Multi-language code examples** — generated via `@powerduck/openapi-codegen` (cURL, JavaScript/fetch, JavaScript/axios, Python/requests, Go), with response preview
+- **Scroll-spy navigation** — passive scroll listener with binary search over section positions; auto-locates operations in the tree
+- **Markdown rendering** — descriptions and field docs rendered via `@powerduck/md-editor` with highlight.js code highlighting and admonition blocks
+- **Multi-language code examples** — generated via `@powerduck/openapi-codegen` (cURL, JS/fetch, JS/axios, Python/requests, Go, Rust, and more), with response preview
 - **Schema exploration** — nested property tables with expand/collapse, type labels, required indicators, constraint badges (enum, min/max, pattern, format), and oneOf/anyOf rendered as switchable tabs
 - **Server selector** — automatic server URL switcher with variable resolution
-- **Responsive** — sidebar collapses to overlay on tablet/mobile, code panel moves to slide-out drawer
+- **Responsive** — sidebar collapses to overlay on tablet/mobile; code panel moves to slide-out drawer
 - **Type-safe** — full TypeScript types, zero `any` in public API
-- **Robust** — null-safe, circular reference detection, memoized rendering
+- **Robust** — null-safe, circular reference detection, LRU-cached syntax highlighting, deferred code rendering
 
 ## Installation
 
 ```bash
-npm install @powerduck/oas-document @powerduck/md-editor @powerduck/openapi-codegen @powerduck/tree @powerduck/openapi-parser react-icons
+npm install @powerduck/oas-document
 ```
 
-Peer dependencies:
+Peer dependency:
 
 ```bash
 npm install react react-dom
 ```
+
+> The component bundles its own stylesheet (tree CSS, md-editor CSS) — no extra CSS imports needed beyond the package entry.
 
 ## Quick Start
 
@@ -64,7 +66,6 @@ export default function App() {
 ```tsx
 <OasDocument
   input={spec}
-  theme="light"
   header={{
     logo: "https://example.com/logo.svg",
     title: "My API Docs",
@@ -95,7 +96,7 @@ function MyDocs({ spec }: { spec: unknown }) {
     setSelectedOperation,
     theme,
     setTheme,
-  } = useOasDocument(spec, { autoUpgrade: true, initialTheme: "light" });
+  } = useOasDocument(spec, { autoUpgrade: true });
 
   if (loading) return <div>Loading…</div>;
   if (error) return <div>Error: {error.message}</div>;
@@ -139,10 +140,10 @@ if (result.error) {
 | `onOperationChange` | `(operation: OasOperation) => void` | — | Callback fired on user-initiated selection changes (tree click, imperative call). Scroll-spy changes do not fire it. |
 | `className` | `string` | — | Additional CSS class for the root element. |
 | `style` | `React.CSSProperties` | — | Inline styles for the root element. |
-| `theme` | `"light" \| "dark"` | `"light"` | Initial color theme. The root element receives `data-theme`. |
+| `theme` | `"light" \| "dark"` | `"light"` | Initial color theme. The selected theme persists to `localStorage` (key: `pde-oas-theme`). |
 | `header` | `OasDocumentHeaderConfig` | — | Header configuration (logo, title, nav items, theme toggle). |
 | `showTree` | `boolean` | `true` | Whether to show the sidebar tree. |
-| `treeWidth` | `number` | `340` | Sidebar width in pixels. When omitted, width is restored from `localStorage` (key: `pde-oas-sidebar-width`); manual drag-resize saves automatically. Range: 200–480. |
+| `treeWidth` | `number` | `340` | Sidebar width in pixels. When omitted, width is restored from `localStorage` (key: `pde-oas-sidebar-width`); manual drag-resize saves automatically. Range: 240–480. |
 
 ### `OasDocumentHeaderConfig`
 
@@ -157,9 +158,9 @@ if (result.error) {
 
 ```ts
 interface UseOasDocumentOptions {
-  autoUpgrade?: boolean;
+  autoUpgrade?: boolean;        // default true
   defaultOperationId?: string;
-  initialTheme?: "light" | "dark"; // default "light"
+  initialTheme?: "light" | "dark"; // default "light", overrides localStorage
 }
 
 interface UseOasDocumentResult {
@@ -176,6 +177,8 @@ interface UseOasDocumentResult {
   setTheme: (theme: "light" | "dark") => void;
 }
 ```
+
+> Theme selection is automatically persisted to `localStorage`. Passing `initialTheme` overrides the stored value on first mount only.
 
 ### `OasDocumentHandle` (via `ref`)
 
@@ -196,31 +199,19 @@ Import the stylesheet:
 import "@powerduck/oas-document/react/index.css";
 ```
 
-The palette follows `powerduck-react/src/theme/tokens.css`. Surfaces, text,
-borders, semantic colors, control heights, and radii use the shared `--color-*`,
-`--control-height-*`, and `--radius-*` tokens. The `--pde-*` variables provide
-compatibility aliases. Override both the document and portalled menu scopes so
-custom colors remain consistent:
+The root element receives `data-theme="light"` or `data-theme="dark"`. All colors resolve through CSS variables under `.pde-oas-root`. Override both the root and portalled scopes so custom colors remain consistent across dropdowns and menus:
 
 ```css
 :is(.pde-oas-root, .pde-oas-theme) {
-  --color-accent: #635bff;
-  --color-surface: #ffffff;
+  --pde-color-accent: #635bff;
 }
 
 :is(.pde-oas-root, .pde-oas-theme)[data-theme="dark"] {
-  --color-accent: #a5a0ff;
-  --color-surface: #1f2125;
+  --pde-color-accent: #a5a0ff;
 }
 ```
 
-Language menus include colorful icons, readable labels, keyboard navigation, and
-viewport-aware positioning. Menus escape card clipping but remain inside a native
-modal's top layer. Code and response scrollbars stay transparent until hover or
-keyboard focus; touch devices retain visible scroll affordances.
-
-The React entry requires a bundler that handles CSS imports. Use the core entry
-for direct Node.js execution without a stylesheet loader.
+The React entry requires a bundler that handles CSS imports. Use the core entry for direct Node.js execution.
 
 ## Auto-Upgrade
 
@@ -229,6 +220,16 @@ By default, `autoUpgrade` is `true`. The input is validated and upgraded to Open
 ```tsx
 <OasDocument input={validOas32Doc} autoUpgrade={false} />
 ```
+
+## Performance
+
+- **Deferred code rendering** — code examples are generated only when they come within 600px of the viewport (IntersectionObserver)
+- **Shiki LRU cache** — syntax highlighting cache limited to 64 entries / 1MB; grammars load on demand; code over 50KB renders as plain text
+- **Scroll-spy** — passive scroll listener with rAF throttling and binary search (O(log n)) over section positions
+- **Example generation budget** — bounded to 6 nesting levels and 1,000-node traversal budget; explicit examples take precedence
+- **No full-page virtualization** — layout cost scales with document complexity; for very large APIs, consider paginating or using the core entry to build a custom shell
+
+Treat input objects as immutable and pass a new object when the document changes.
 
 ## Development
 
@@ -241,32 +242,6 @@ npm run check       # English source check, types, tests, and build
 npm run preview     # Local responsive UI preview
 npm run benchmark   # Navigation lookup benchmark
 ```
-
-## Interaction and performance
-
-The reference layout pairs endpoint descriptions with code examples. Navigation
-tracks the top of the reading pane. On small screens, native modal drawers provide
-keyboard focus management, Escape dismissal, and independent code access even
-when `showTree` is false. Language and HTTP client preferences are shared across
-examples within one document instance.
-
-Code examples are generated when they come within 600 pixels of the reading pane.
-One observer is shared across pending examples and released when no work remains.
-Syntax highlighting loads only the requested grammar. Its cache is limited to 64
-entries and 1,000,000 UTF-16 code units, and examples longer than 50,000 characters
-remain readable as plain text. Generated examples are bounded to six nested levels
-and a 1,000-node traversal budget. Explicit response examples take precedence over
-generated values. These safeguards do not truncate the source API document.
-
-Navigation indexing is linear in the number of nodes and operations. Scroll tracking
-uses a passive listener, one animation frame per update, and a binary search over
-section positions. Browser layout costs still depend on document complexity; this
-component does not virtualize the entire documentation page.
-
-Treat input objects as immutable and pass a new object when the document changes.
-`autoUpgrade={false}` skips full validation but still requires a document object with
-`openapi` and `info` fields. Loading and derivation errors return empty collections
-and a structured error instead of leaving a previous document active.
 
 ## License
 
