@@ -130,8 +130,11 @@ describe("OasDocument", () => {
     const root = container.querySelector(".pde-oas-root");
     expect(root).toHaveAttribute("data-theme", "light");
 
-    const toggle = screen.getByRole("button", { name: /dark mode/i });
+    const toggle = screen.getByRole("switch", { name: /dark mode/i });
+    expect(toggle).toHaveAttribute("aria-checked", "false");
+    expect(toggle.closest(".pde-oas-header-left")).not.toBeNull();
     fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute("aria-checked", "true");
 
     expect(root).toHaveAttribute("data-theme", "dark");
   });

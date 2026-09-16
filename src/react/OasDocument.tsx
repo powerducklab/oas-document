@@ -54,6 +54,7 @@ import { buildExampleValue, getDirectFields, resolveSchemaRef, stringifyExample,
 import { CodePreferencesProvider, useCodePreferences } from "./components/CodePreferences";
 import { ReferenceSelect } from "./components/ReferenceSelect";
 import { LanguageIcon, languageLabel, clientLabel } from "./components/LanguageIcon";
+import { OperationExportActions } from "./components/OperationExportActions";
 import { Drawer } from "./components/Drawer";
 
 import { Tree } from "@powerduck/tree/react";
@@ -1324,6 +1325,7 @@ const OperationSection = memo(function OperationSection({
       className="pde-oas-operation-section"
     >
       <div className="pde-oas-operation-column">
+        {!showCodeColumn && <OperationExportActions document={document} operation={operation} serverUrl={serverUrl} />}
         {/* Title row */}
         <header className="pde-oas-operation-header">
           <div className="pde-oas-operation-endpoint">
@@ -1384,6 +1386,7 @@ const OperationSection = memo(function OperationSection({
       {showCodeColumn ? (
         <div className="pde-oas-code-column">
           <div className="pde-oas-code-sticky">
+            <OperationExportActions document={document} operation={operation} serverUrl={serverUrl} />
             <DeferredContent>
             <CodeExamplesPanel
               operation={operation}
@@ -1506,23 +1509,29 @@ function Header({
         ) : null}
 
         <span className="pde-oas-header-title">{title}</span>
+        {showThemeToggle ? (
+          <button
+            type="button"
+            role="switch"
+            aria-label="Dark mode"
+            aria-checked={theme === "dark"}
+            title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            className="pde-oas-theme-toggle"
+            onClick={onToggleTheme}
+          >
+            <span className="pde-oas-theme-track" aria-hidden="true">
+              <span className="pde-oas-theme-thumb">
+                {theme === "dark" ? <LuMoon size={14} /> : <LuSun size={14} />}
+              </span>
+            </span>
+          </button>
+        ) : null}
       </div>
 
       <div className="pde-oas-header-right">
         {navItems.map(renderNavItem)}
 
-        {showThemeToggle ? (
-          <button
-            type="button"
-            aria-label={
-              theme === "dark" ? "Switch to light mode" : "Switch to dark mode"
-            }
-            className="pde-oas-theme-toggle"
-            onClick={onToggleTheme}
-          >
-            {theme === "dark" ? <LuSun size={16} /> : <LuMoon size={16} />}
-          </button>
-        ) : null}
+
       </div>
     </header>
   );

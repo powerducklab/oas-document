@@ -15,6 +15,7 @@ Built on [`@powerduck/openapi-parser`](https://www.npmjs.com/package/@powerduck/
 - **Scroll-spy navigation** — passive scroll listener with binary search over section positions; auto-locates operations in the tree
 - **Markdown rendering** — descriptions and field docs rendered via `@powerduck/md-editor` with highlight.js code highlighting and admonition blocks
 - **Multi-language code examples** — generated via `@powerduck/openapi-codegen` (cURL, JS/fetch, JS/axios, Python/requests, Go, Rust, and more), with response preview
+- **AI-ready Markdown** — per-operation Copy for LLM and View as Markdown actions include the operation description, selected client request, and primary response example or structure
 - **Schema exploration** — nested property tables with expand/collapse, type labels, required indicators, constraint badges (enum, min/max, pattern, format), and oneOf/anyOf rendered as switchable tabs
 - **Server selector** — automatic server URL switcher with variable resolution
 - **Responsive** — sidebar collapses to overlay on tablet/mobile; code panel moves to slide-out drawer
@@ -127,6 +128,19 @@ if (result.error) {
   console.log("Tree nodes:", result.tree.length);
 }
 ```
+
+### Export an operation as Markdown
+
+```ts
+import { buildOperationMarkdown, parseOperations } from "@powerduck/oas-document/core";
+
+const operation = parseOperations(document)[0];
+if (operation) {
+  const markdown = buildOperationMarkdown(document, operation);
+}
+```
+
+The UI generates Markdown only when an export action is used. Both actions use the same content. The export prefers explicit response examples and falls back to the primary response schema. Other response statuses are summarized, without exporting the whole specification or a reference appendix. An optional third argument selects the server URL, and a fourth argument accepts `{ language, client }` (defaults to shell/cURL). The UI follows the selected code example language. The Markdown preview supports text selection, copying, and Escape to close.
 
 ## API Reference
 
