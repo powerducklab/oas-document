@@ -1043,8 +1043,7 @@
   flex-direction: column;
   gap: var(--pde-space-4);
   max-height: calc(100vh - var(--pde-header-height) - var(--pde-space-8));
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
 }
 
 /* ---- Request card ------------------------------------------------------- */
@@ -1167,7 +1166,6 @@
 .pde-oas-code-block-request {
   background: var(--pde-color-surface-subtle);
   flex: 1 1 auto;
-  overflow-x: auto;
   min-height: 0;
 }
 
@@ -1210,7 +1208,6 @@
 .pde-oas-highlighted-code {
   margin: 0;
   width: 100%;
-  overflow-x: auto;
 }
 
 .pde-oas-highlighted-code pre.shiki {
@@ -1220,7 +1217,6 @@
   font-size: var(--pde-font-size-sm);
   line-height: 1.55;
   background: transparent !important;
-  overflow-x: auto;
 }
 
 .pde-oas-highlighted-code pre.shiki code {
@@ -1798,7 +1794,6 @@
 }
 
 .pde-oas-root .markdown-body pre {
-  background: var(--pde-color-surface-subtle);
   border-color: var(--pde-color-border-subtle);
 }
 

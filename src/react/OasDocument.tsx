@@ -1539,7 +1539,7 @@ function CodeExamplesPanel({
         <div className="pde-oas-request-card-header">
           <div className="pde-oas-language-selectors">
             <Select.Root
-              size="sm"
+              size="xs"
               collection={languageCollection}
               value={language ? [language] : []}
               onValueChange={(e) => handleLanguageChange(e.value[0] ?? "")}
@@ -1562,7 +1562,7 @@ function CodeExamplesPanel({
             </Select.Root>
 
             <Select.Root
-              size="sm"
+              size="xs"
               collection={clientCollection}
               value={client ? [client] : []}
               onValueChange={(e) => setClient(e.value[0] ?? "")}
@@ -1602,7 +1602,7 @@ function CodeExamplesPanel({
         </div>
 
         <div className="pde-oas-code-block-request">
-          <ScrollArea.Root variant="hover">
+          <ScrollArea.Root variant="hover" maxH="320px">
             <ScrollArea.Viewport>
               <HighlightedCode
                 code={requestCode}
@@ -1810,7 +1810,7 @@ const ServerSelector = memo(function ServerSelector({
       <span className="pde-oas-server-selector-label">Server</span>
 
       <Select.Root
-        size="sm"
+        size="xs"
         collection={serverCollection}
         value={serverUrl ? [serverUrl] : []}
         onValueChange={(e) => onChange(e.value[0] ?? "")}
