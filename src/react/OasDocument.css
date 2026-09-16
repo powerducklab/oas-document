@@ -732,19 +732,9 @@
 }
 
 .pde-oas-field-constraints {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-top: 4px;
-}
-
-.pde-oas-constraint-badge {
-  font-family: var(--pde-font-mono);
   font-size: 11px;
   color: var(--pde-color-text-tertiary);
-  background: var(--pde-color-surface-subtle);
-  padding: 1px 6px;
-  border-radius: 3px;
+  font-family: var(--pde-font-mono);
 }
 
 .pde-oas-show-children-button {
@@ -915,14 +905,20 @@
   overflow: hidden;
 }
 
-.pde-oas-native-select-dark [data-part="field"] {
-  background: rgba(255,255,255,0.1);
-  border-color: rgba(255,255,255,0.15);
+.pde-oas-language-selectors .chakra-select__trigger {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.15);
   color: #c9d1d9;
   font-size: 12px;
+  min-width: 80px;
+  height: 28px;
 }
 
-.pde-oas-native-select-dark [data-part="indicator"] {
+.pde-oas-language-selectors .chakra-select__trigger:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.pde-oas-language-selectors .chakra-select__indicator {
   color: #8b949e;
 }
 
@@ -1303,102 +1299,54 @@
   word-wrap: break-word;
 }
 
-.pde-oas-markdown h1,
-.pde-oas-markdown h2,
-.pde-oas-markdown h3,
-.pde-oas-markdown h4 {
-  margin: var(--pde-space-4) 0 var(--pde-space-2);
-  font-weight: 600;
-  line-height: 1.3;
+.pde-oas-markdown > *:first-child {
+  margin-top: 0;
 }
 
-.pde-oas-markdown h1 { font-size: 22px; }
-.pde-oas-markdown h2 { font-size: 18px; }
-.pde-oas-markdown h3 { font-size: 16px; }
-.pde-oas-markdown h4 { font-size: var(--pde-font-size-md); }
-
-.pde-oas-markdown p {
-  margin: 0 0 var(--pde-space-3);
-}
-
-.pde-oas-markdown a {
-  color: var(--pde-color-accent);
-  text-decoration: none;
-}
-
-.pde-oas-markdown a:hover {
-  text-decoration: underline;
-}
-
-.pde-oas-markdown ul,
-.pde-oas-markdown ol {
-  padding-left: var(--pde-space-5);
-  margin: 0 0 var(--pde-space-3);
-}
-
-.pde-oas-markdown li {
-  margin-bottom: var(--pde-space-1);
-}
-
-.pde-oas-markdown code {
-  font-family: var(--pde-font-mono);
-  font-size: 0.9em;
-  background: var(--pde-color-surface-subtle);
-  padding: 2px 6px;
-  border-radius: var(--pde-radius-sm);
-}
-
-.pde-oas-markdown pre {
-  background: var(--pde-color-code-bg);
-  color: var(--pde-color-code-text);
-  padding: var(--pde-space-3);
-  border-radius: var(--pde-radius-md);
-  overflow-x: auto;
-  margin: 0 0 var(--pde-space-3);
-}
-
-.pde-oas-markdown pre code {
-  background: none;
-  padding: 0;
-  font-size: var(--pde-font-size-sm);
-}
-
-.pde-oas-markdown blockquote {
-  margin: 0 0 var(--pde-space-3);
-  padding: var(--pde-space-2) var(--pde-space-4);
-  border-left: 3px solid var(--pde-color-border-default);
-  color: var(--pde-color-text-secondary);
-  background: var(--pde-color-surface-subtle);
-}
-
-.pde-oas-markdown table {
-  border-collapse: collapse;
-  width: 100%;
-  margin: 0 0 var(--pde-space-3);
-  font-size: var(--pde-font-size-sm);
-}
-
-.pde-oas-markdown th,
-.pde-oas-markdown td {
-  border: 1px solid var(--pde-color-border-subtle);
-  padding: var(--pde-space-2) var(--pde-space-3);
-  text-align: left;
-}
-
-.pde-oas-markdown th {
-  background: var(--pde-color-surface-subtle);
-  font-weight: 600;
-}
-
-.pde-oas-markdown hr {
-  border: none;
-  border-top: 1px solid var(--pde-color-border-subtle);
-  margin: var(--pde-space-4) 0;
+/* Dark mode overrides for github-markdown-css bundled in @powerduck/md-editor */
+.pde-oas-root[data-theme="dark"] .markdown-body {
+  --color-fg-default: var(--pde-color-text-primary);
+  --color-fg-muted: var(--pde-color-text-secondary);
+  --color-fg-subtle: var(--pde-color-text-tertiary);
+  --color-canvas-default: var(--pde-color-surface);
+  --color-canvas-subtle: var(--pde-color-surface-subtle);
+  --color-border-default: var(--pde-color-border-default);
+  --color-border-muted: var(--pde-color-border-subtle);
+  --color-accent-fg: var(--pde-color-accent);
+  --color-danger-fg: var(--pde-color-danger);
+  --color-success-fg: var(--pde-color-success);
+  --color-prettylights-syntax-comment: #8b949e;
+  --color-prettylights-syntax-keyword: #ff7b72;
+  --color-prettylights-syntax-string: #a5d6ff;
+  --color-prettylights-syntax-number: #79c0ff;
+  --color-prettylights-syntax-constant: #79c0ff;
+  --color-prettylights-syntax-entity: #d2a8ff;
+  --color-prettylights-syntax-storage-modifier-import: #e6edf3;
+  --color-prettylights-syntax-entity-tag: #7ee787;
+  --color-prettylights-syntax-markup-heading: #1f6feb;
+  --color-prettylights-syntax-markup-italic: #e6edf3;
+  --color-prettylights-syntax-markup-bold: #e6edf3;
+  --color-prettylights-syntax-markup-deleted-text: #ffa198;
+  --color-prettylights-syntax-markup-deleted-bg: #67060c;
+  --color-prettylights-syntax-markup-inserted-text: #7ee787;
+  --color-prettylights-syntax-markup-inserted-bg: #033a16;
+  --color-prettylights-syntax-markup-changed-text: #e3b341;
+  --color-prettylights-syntax-markup-changed-bg: #4d2d00;
+  --color-prettylights-syntax-markup-ignored-text: #8b949e;
+  --color-prettylights-syntax-markup-ignored-bg: #1158c7;
+  --color-prettylights-syntax-meta-diff-range: #d2a8ff;
+  --color-prettylights-syntax-sublimelinter-gutter-mark: #484f58;
+  --color-prettylights-syntax-constant-other-reference-link: #a5d6ff;
 }
 
 /* ==========================================================================
-   Unified custom scrollbars for all scrollable areas
+   Unified custom scrollbars — applies to every scrollable descendant
    ========================================================================== */
+
+.pde-oas-root * {
+  scrollbar-width: thin;
+  scrollbar-color: var(--pde-color-border-strong) transparent;
+}
 
 .pde-oas-root *::-webkit-scrollbar {
   width: 8px;
@@ -1410,12 +1358,21 @@
 }
 
 .pde-oas-root *::-webkit-scrollbar-thumb {
-  background: var(--pde-color-border-default);
+  background: var(--pde-color-border-strong);
   border-radius: 4px;
 }
 
 .pde-oas-root *::-webkit-scrollbar-thumb:hover {
-  background: var(--pde-color-border-strong);
+  background: var(--pde-color-text-tertiary);
+}
+
+.pde-oas-root *::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Dark mode scrollbar adjustments */
+.pde-oas-root[data-theme="dark"] * {
+  scrollbar-color: var(--pde-color-border-strong) transparent;
 }
 
 .pde-oas-root[data-theme="dark"] *::-webkit-scrollbar-thumb {
@@ -1423,7 +1380,7 @@
 }
 
 .pde-oas-root[data-theme="dark"] *::-webkit-scrollbar-thumb:hover {
-  background: var(--pde-color-text-tertiary);
+  background: var(--pde-color-text-secondary);
 }
 
 /* ==========================================================================

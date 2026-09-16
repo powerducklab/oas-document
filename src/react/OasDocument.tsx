@@ -57,8 +57,10 @@ import type {
 import {
   CodeBlock,
   CodeBlockAdapterProvider,
+  createListCollection,
   createShikiAdapter,
   NativeSelect,
+  Select,
   Splitter,
 } from "@chakra-ui/react";
 
@@ -560,7 +562,7 @@ function Markdown({ children, className }: MarkdownProps) {
 
   return (
     <div
-      className={cn("pde-oas-markdown", className)}
+      className={cn("pde-oas-markdown", "markdown-body", className)}
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );
@@ -800,79 +802,120 @@ type SchemaFieldRowProps = {
   document: OasRootDocument;
 };
 
-function SchemaConstraints({ schema }: { schema: OpenApiSchema }) {
+/**
+ * Returns a compact, single-line constraint label for a schema, e.g.
+ * `[0, 100] nullable`, `enum: [a, b, c] read-only`, `pattern: ^[a-z]+$`.
+ * Returns an empty string when the schema has no constraints to show.
+ */
+function getSchemaConstraintLabel(
+  schema: OpenApiSchema | undefined,
+): string {
+  if (!schema) return "";
+
   const record = schema as Record<string, unknown>;
-  const badges: string[] = [];
+  const parts: string[] = [];
 
-  // Enum values
-  const enumValues = getSchemaEnum(schema);
-  if (enumValues.length > 0) {
-    badges.push(`enum: ${stringifyDisplayValue(enumValues)}`);
-  }
+  // Numeric range — OAS 3.0 uses booleans for exclusive, 3.1 uses numbers.
+  const minimum = typeof record.minimum === "number" ? record.minimum : undefined;
+  const maximum = typeof record.maximum === "number" ? record.maximum : undefined;
+  const exclMin = record.exclusiveMinimum;
+  const exclMax = record.exclusiveMaximum;
+  const hasNumeric =
+    minimum !== undefined ||
+    maximum !== undefined ||
+    typeof exclMin === "number" ||
+    typeof exclMax === "number" ||
+    exclMin === true ||
+    exclMax === true;
 
-  // Numeric constraints
-  if (typeof record.minimum === "number") {
-    badges.push(`≥ ${record.minimum}`);
-  }
-  if (typeof record.maximum === "number") {
-    badges.push(`≤ ${record.maximum}`);
-  }
-  if (typeof record.exclusiveMinimum === "number") {
-    badges.push(`> ${record.exclusiveMinimum}`);
-  }
-  if (typeof record.exclusiveMaximum === "number") {
-    badges.push(`< ${record.exclusiveMaximum}`);
-  }
-  if (typeof record.multipleOf === "number") {
-    badges.push(`multipleOf: ${record.multipleOf}`);
-  }
+  if (hasNumeric) {
+    // Resolve lower bound
+    let lower: string;
+    let lowerInclusive = true;
+    if (typeof exclMin === "number") {
+      lower = String(exclMin);
+      lowerInclusive = false;
+    } else if (exclMin === true) {
+      lower = String(minimum ?? "");
+      lowerInclusive = false;
+    } else {
+      lower = String(minimum ?? "");
+    }
 
-  // String constraints
-  if (typeof record.minLength === "number") {
-    badges.push(`minLength: ${record.minLength}`);
-  }
-  if (typeof record.maxLength === "number") {
-    badges.push(`maxLength: ${record.maxLength}`);
-  }
-  if (typeof record.pattern === "string") {
-    badges.push(`pattern: ${record.pattern}`);
-  }
+    // Resolve upper bound
+    let upper: string;
+    let upperInclusive = true;
+    if (typeof exclMax === "number") {
+      upper = String(exclMax);
+      upperInclusive = false;
+    } else if (exclMax === true) {
+      upper = String(maximum ?? "");
+      upperInclusive = false;
+    } else {
+      upper = String(maximum ?? "");
+    }
 
-  // Array constraints
-  if (typeof record.minItems === "number") {
-    badges.push(`minItems: ${record.minItems}`);
-  }
-  if (typeof record.maxItems === "number") {
-    badges.push(`maxItems: ${record.maxItems}`);
-  }
-  if (record.uniqueItems === true) {
-    badges.push("uniqueItems");
-  }
-
-  // Default / example
-  const hasDefault = Object.prototype.hasOwnProperty.call(record, "default");
-  if (hasDefault) {
-    badges.push(`default: ${stringifyDisplayValue(record.default)}`);
-  } else {
-    const example = getSchemaExample(schema);
-    if (example !== undefined) {
-      badges.push(`example: ${stringifyDisplayValue(example)}`);
+    if (lower !== "" || upper !== "") {
+      const open = lowerInclusive ? "[" : "(";
+      const close = upperInclusive ? "]" : ")";
+      parts.push(`${open}${lower}, ${upper}${close}`);
     }
   }
 
-  if (badges.length === 0) {
-    return null;
+  // String length
+  const minLen = typeof record.minLength === "number" ? record.minLength : undefined;
+  const maxLen = typeof record.maxLength === "number" ? record.maxLength : undefined;
+  if (minLen !== undefined || maxLen !== undefined) {
+    parts.push(`[${minLen ?? ""}, ${maxLen ?? ""}]`);
   }
 
-  return (
-    <div className="pde-oas-field-constraints">
-      {badges.map((badge, i) => (
-        <span key={i} className="pde-oas-constraint-badge">
-          {badge}
-        </span>
-      ))}
-    </div>
-  );
+  // Array items
+  const minItems = typeof record.minItems === "number" ? record.minItems : undefined;
+  const maxItems = typeof record.maxItems === "number" ? record.maxItems : undefined;
+  if (minItems !== undefined || maxItems !== undefined) {
+    let range = `[${minItems ?? ""}, ${maxItems ?? ""}]`;
+    if (record.uniqueItems === true) range += " unique";
+    parts.push(range);
+  }
+
+  // Enum
+  const enumValues = getSchemaEnum(schema);
+  if (enumValues.length > 0) {
+    let enumLabel = `enum: [${enumValues.map(stringifyDisplayValue).join(", ")}]`;
+    if (enumLabel.length > 60) {
+      enumLabel = enumLabel.slice(0, 57) + "…]";
+    }
+    parts.push(enumLabel);
+  }
+
+  // Pattern
+  if (typeof record.pattern === "string") {
+    let pattern = record.pattern;
+    if (pattern.length > 40) {
+      pattern = pattern.slice(0, 37) + "…";
+    }
+    parts.push(`pattern: ${pattern}`);
+  }
+
+  // Metadata flags
+  if (record.nullable === true) parts.push("nullable");
+  if (record.readOnly === true) parts.push("read-only");
+  if (record.writeOnly === true) parts.push("write-only");
+  if (isSchemaDeprecated(schema)) parts.push("deprecated");
+
+  // Default — only for simple scalar values
+  if (Object.prototype.hasOwnProperty.call(record, "default")) {
+    const def = record.default;
+    if (
+      typeof def === "string" ||
+      typeof def === "number" ||
+      typeof def === "boolean"
+    ) {
+      parts.push(`= ${stringifyDisplayValue(def)}`);
+    }
+  }
+
+  return parts.join(" ");
 }
 
 function SchemaFieldRow({ field, document }: SchemaFieldRowProps) {
@@ -886,6 +929,7 @@ function SchemaFieldRow({ field, document }: SchemaFieldRowProps) {
   );
 
   const description = getSchemaDescription(schema);
+  const constraints = getSchemaConstraintLabel(schema);
 
   return (
     <div className="pde-oas-field-row">
@@ -894,21 +938,8 @@ function SchemaFieldRow({ field, document }: SchemaFieldRowProps) {
         <span className="pde-oas-field-type">
           {getSchemaTypeLabel(schema)}
         </span>
-        {isSchemaDeprecated(schema) ? (
-          <span className="pde-oas-deprecated-badge">Deprecated</span>
-        ) : null}
-        {(schema as Record<string, unknown>).readOnly ? (
-          <span className="pde-oas-field-badge pde-oas-field-badge-readonly">
-            read-only
-          </span>
-        ) : null}
-        {(schema as Record<string, unknown>).writeOnly ? (
-          <span className="pde-oas-field-badge pde-oas-field-badge-writeonly">
-            write-only
-          </span>
-        ) : null}
-        {(schema as Record<string, unknown>).nullable ? (
-          <span className="pde-oas-field-badge">nullable</span>
+        {constraints ? (
+          <span className="pde-oas-field-constraints">{constraints}</span>
         ) : null}
         {field.required ? (
           <span className="pde-oas-field-required">required</span>
@@ -918,8 +949,6 @@ function SchemaFieldRow({ field, document }: SchemaFieldRowProps) {
       {description ? (
         <Markdown className="pde-oas-field-description">{description}</Markdown>
       ) : null}
-
-      <SchemaConstraints schema={schema} />
 
       {childFields.length > 0 ? (
         <ExpandableChildFields
@@ -955,6 +984,8 @@ function ParameterRow({ parameter, document }: ParameterRowProps) {
     [schema, document],
   );
 
+  const constraints = getSchemaConstraintLabel(schema);
+
   return (
     <div className="pde-oas-field-row">
       <div className="pde-oas-field-row-head">
@@ -962,21 +993,8 @@ function ParameterRow({ parameter, document }: ParameterRowProps) {
         <span className="pde-oas-field-type">
           {schema ? getSchemaTypeLabel(schema) : "unknown"}
         </span>
-        {schema && isSchemaDeprecated(schema) ? (
-          <span className="pde-oas-deprecated-badge">Deprecated</span>
-        ) : null}
-        {schema && (schema as Record<string, unknown>).readOnly ? (
-          <span className="pde-oas-field-badge pde-oas-field-badge-readonly">
-            read-only
-          </span>
-        ) : null}
-        {schema && (schema as Record<string, unknown>).writeOnly ? (
-          <span className="pde-oas-field-badge pde-oas-field-badge-writeonly">
-            write-only
-          </span>
-        ) : null}
-        {schema && (schema as Record<string, unknown>).nullable ? (
-          <span className="pde-oas-field-badge">nullable</span>
+        {constraints ? (
+          <span className="pde-oas-field-constraints">{constraints}</span>
         ) : null}
         <span className="pde-oas-location-badge">{parameter.in}</span>
         {parameter.required ? (
@@ -989,8 +1007,6 @@ function ParameterRow({ parameter, document }: ParameterRowProps) {
           {parameter.description}
         </Markdown>
       ) : null}
-
-      {schema ? <SchemaConstraints schema={schema} /> : null}
 
       {childFields.length > 0 ? (
         <ExpandableChildFields
@@ -1263,6 +1279,16 @@ function CodeExamplesPanel({
 
   const availableClients = languageGroups.get(language) ?? [];
 
+  const languageCollection = useMemo(
+    () => createListCollection({ items: languages }),
+    [languages],
+  );
+
+  const clientCollection = useMemo(
+    () => createListCollection({ items: availableClients }),
+    [availableClients],
+  );
+
   const handleLanguageChange = useCallback(
     (nextLanguage: string) => {
       setLanguage(nextLanguage);
@@ -1335,35 +1361,51 @@ function CodeExamplesPanel({
       <div className="pde-oas-request-card">
         <div className="pde-oas-request-card-header">
           <div className="pde-oas-language-selectors">
-            <NativeSelect.Root size="sm" className="pde-oas-native-select-dark">
-              <NativeSelect.Field
-                value={language}
-                onChange={(event) => handleLanguageChange(event.target.value)}
-                aria-label="Code language"
-              >
-                {languages.map((lang) => (
-                  <option key={lang} value={lang}>
-                    {lang}
-                  </option>
-                ))}
-              </NativeSelect.Field>
-              <NativeSelect.Indicator />
-            </NativeSelect.Root>
+            <Select.Root
+              size="sm"
+              collection={languageCollection}
+              value={language ? [language] : []}
+              onValueChange={(e) => handleLanguageChange(e.value[0] ?? "")}
+            >
+              <Select.Trigger aria-label="Code language">
+                <Select.ValueText />
+              </Select.Trigger>
+              <Select.Positioner>
+                <Select.Content>
+                  <Select.List>
+                    {languages.map((lang) => (
+                      <Select.Item key={lang} item={lang}>
+                        <Select.ItemText>{lang}</Select.ItemText>
+                        <Select.ItemIndicator />
+                      </Select.Item>
+                    ))}
+                  </Select.List>
+                </Select.Content>
+              </Select.Positioner>
+            </Select.Root>
 
-            <NativeSelect.Root size="sm" className="pde-oas-native-select-dark">
-              <NativeSelect.Field
-                value={client}
-                onChange={(event) => setClient(event.target.value)}
-                aria-label="HTTP client"
-              >
-                {availableClients.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </NativeSelect.Field>
-              <NativeSelect.Indicator />
-            </NativeSelect.Root>
+            <Select.Root
+              size="sm"
+              collection={clientCollection}
+              value={client ? [client] : []}
+              onValueChange={(e) => setClient(e.value[0] ?? "")}
+            >
+              <Select.Trigger aria-label="HTTP client">
+                <Select.ValueText />
+              </Select.Trigger>
+              <Select.Positioner>
+                <Select.Content>
+                  <Select.List>
+                    {availableClients.map((c) => (
+                      <Select.Item key={c} item={c}>
+                        <Select.ItemText>{c}</Select.ItemText>
+                        <Select.ItemIndicator />
+                      </Select.Item>
+                    ))}
+                  </Select.List>
+                </Select.Content>
+              </Select.Positioner>
+            </Select.Root>
           </div>
 
           <div className="pde-oas-request-card-actions">
