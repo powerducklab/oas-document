@@ -32,11 +32,17 @@ import {
 import {
   getPrimaryMediaType,
   getSchemaDescription,
+  getSchemaExample,
+  getSchemaConstraints,
+  getSchemaEnum,
+  getSchemaFormat,
   getSchemaTypeLabel,
   getProperty,
   getObjectProperty,
+  isSchemaDeprecated,
   resolveSchema,
   resolveServerUrl,
+  stringifyDisplayValue,
 } from "../core";
 
 import type {
@@ -49,11 +55,10 @@ import type {
 } from "../core";
 
 import {
-  ChakraProvider,
   CodeBlock,
   CodeBlockAdapterProvider,
   createShikiAdapter,
-  defaultSystem,
+  NativeSelect,
   Splitter,
 } from "@chakra-ui/react";
 
@@ -90,6 +95,8 @@ import {
   resolveOperationFromNode,
   useMediaQuery,
 } from "./libs/utils";
+
+import { OptionalChakraProvider } from "./libs/OptionalChakraProvider";
 
 /* ==========================================================================
    Code generator setup (module-level, idempotent)
@@ -793,6 +800,81 @@ type SchemaFieldRowProps = {
   document: OasRootDocument;
 };
 
+function SchemaConstraints({ schema }: { schema: OpenApiSchema }) {
+  const record = schema as Record<string, unknown>;
+  const badges: string[] = [];
+
+  // Enum values
+  const enumValues = getSchemaEnum(schema);
+  if (enumValues.length > 0) {
+    badges.push(`enum: ${stringifyDisplayValue(enumValues)}`);
+  }
+
+  // Numeric constraints
+  if (typeof record.minimum === "number") {
+    badges.push(`≥ ${record.minimum}`);
+  }
+  if (typeof record.maximum === "number") {
+    badges.push(`≤ ${record.maximum}`);
+  }
+  if (typeof record.exclusiveMinimum === "number") {
+    badges.push(`> ${record.exclusiveMinimum}`);
+  }
+  if (typeof record.exclusiveMaximum === "number") {
+    badges.push(`< ${record.exclusiveMaximum}`);
+  }
+  if (typeof record.multipleOf === "number") {
+    badges.push(`multipleOf: ${record.multipleOf}`);
+  }
+
+  // String constraints
+  if (typeof record.minLength === "number") {
+    badges.push(`minLength: ${record.minLength}`);
+  }
+  if (typeof record.maxLength === "number") {
+    badges.push(`maxLength: ${record.maxLength}`);
+  }
+  if (typeof record.pattern === "string") {
+    badges.push(`pattern: ${record.pattern}`);
+  }
+
+  // Array constraints
+  if (typeof record.minItems === "number") {
+    badges.push(`minItems: ${record.minItems}`);
+  }
+  if (typeof record.maxItems === "number") {
+    badges.push(`maxItems: ${record.maxItems}`);
+  }
+  if (record.uniqueItems === true) {
+    badges.push("uniqueItems");
+  }
+
+  // Default / example
+  const hasDefault = Object.prototype.hasOwnProperty.call(record, "default");
+  if (hasDefault) {
+    badges.push(`default: ${stringifyDisplayValue(record.default)}`);
+  } else {
+    const example = getSchemaExample(schema);
+    if (example !== undefined) {
+      badges.push(`example: ${stringifyDisplayValue(example)}`);
+    }
+  }
+
+  if (badges.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="pde-oas-field-constraints">
+      {badges.map((badge, i) => (
+        <span key={i} className="pde-oas-constraint-badge">
+          {badge}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 function SchemaFieldRow({ field, document }: SchemaFieldRowProps) {
   const [expanded, setExpanded] = useState(false);
 
@@ -812,6 +894,22 @@ function SchemaFieldRow({ field, document }: SchemaFieldRowProps) {
         <span className="pde-oas-field-type">
           {getSchemaTypeLabel(schema)}
         </span>
+        {isSchemaDeprecated(schema) ? (
+          <span className="pde-oas-deprecated-badge">Deprecated</span>
+        ) : null}
+        {(schema as Record<string, unknown>).readOnly ? (
+          <span className="pde-oas-field-badge pde-oas-field-badge-readonly">
+            read-only
+          </span>
+        ) : null}
+        {(schema as Record<string, unknown>).writeOnly ? (
+          <span className="pde-oas-field-badge pde-oas-field-badge-writeonly">
+            write-only
+          </span>
+        ) : null}
+        {(schema as Record<string, unknown>).nullable ? (
+          <span className="pde-oas-field-badge">nullable</span>
+        ) : null}
         {field.required ? (
           <span className="pde-oas-field-required">required</span>
         ) : null}
@@ -820,6 +918,8 @@ function SchemaFieldRow({ field, document }: SchemaFieldRowProps) {
       {description ? (
         <Markdown className="pde-oas-field-description">{description}</Markdown>
       ) : null}
+
+      <SchemaConstraints schema={schema} />
 
       {childFields.length > 0 ? (
         <ExpandableChildFields
@@ -862,6 +962,22 @@ function ParameterRow({ parameter, document }: ParameterRowProps) {
         <span className="pde-oas-field-type">
           {schema ? getSchemaTypeLabel(schema) : "unknown"}
         </span>
+        {schema && isSchemaDeprecated(schema) ? (
+          <span className="pde-oas-deprecated-badge">Deprecated</span>
+        ) : null}
+        {schema && (schema as Record<string, unknown>).readOnly ? (
+          <span className="pde-oas-field-badge pde-oas-field-badge-readonly">
+            read-only
+          </span>
+        ) : null}
+        {schema && (schema as Record<string, unknown>).writeOnly ? (
+          <span className="pde-oas-field-badge pde-oas-field-badge-writeonly">
+            write-only
+          </span>
+        ) : null}
+        {schema && (schema as Record<string, unknown>).nullable ? (
+          <span className="pde-oas-field-badge">nullable</span>
+        ) : null}
         <span className="pde-oas-location-badge">{parameter.in}</span>
         {parameter.required ? (
           <span className="pde-oas-field-required">required</span>
@@ -873,6 +989,8 @@ function ParameterRow({ parameter, document }: ParameterRowProps) {
           {parameter.description}
         </Markdown>
       ) : null}
+
+      {schema ? <SchemaConstraints schema={schema} /> : null}
 
       {childFields.length > 0 ? (
         <ExpandableChildFields
@@ -1217,31 +1335,35 @@ function CodeExamplesPanel({
       <div className="pde-oas-request-card">
         <div className="pde-oas-request-card-header">
           <div className="pde-oas-language-selectors">
-            <select
-              value={language}
-              onChange={(event) => handleLanguageChange(event.target.value)}
-              className="pde-oas-language-select"
-              aria-label="Code language"
-            >
-              {languages.map((lang) => (
-                <option key={lang} value={lang}>
-                  {lang}
-                </option>
-              ))}
-            </select>
+            <NativeSelect.Root size="sm" className="pde-oas-native-select-dark">
+              <NativeSelect.Field
+                value={language}
+                onChange={(event) => handleLanguageChange(event.target.value)}
+                aria-label="Code language"
+              >
+                {languages.map((lang) => (
+                  <option key={lang} value={lang}>
+                    {lang}
+                  </option>
+                ))}
+              </NativeSelect.Field>
+              <NativeSelect.Indicator />
+            </NativeSelect.Root>
 
-            <select
-              value={client}
-              onChange={(event) => setClient(event.target.value)}
-              className="pde-oas-language-select"
-              aria-label="HTTP client"
-            >
-              {availableClients.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
+            <NativeSelect.Root size="sm" className="pde-oas-native-select-dark">
+              <NativeSelect.Field
+                value={client}
+                onChange={(event) => setClient(event.target.value)}
+                aria-label="HTTP client"
+              >
+                {availableClients.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </NativeSelect.Field>
+              <NativeSelect.Indicator />
+            </NativeSelect.Root>
           </div>
 
           <div className="pde-oas-request-card-actions">
@@ -1455,21 +1577,24 @@ const ServerSelector = memo(function ServerSelector({
     <div className="pde-oas-server-selector">
       <span className="pde-oas-server-selector-label">Server</span>
 
-      <select
-        value={serverUrl}
-        onChange={(event) => onChange(event.target.value)}
-        className="pde-oas-server-select"
-      >
-        {servers.map((server) => {
-          const url = resolveServerUrl(server.url, server.variables);
+      <NativeSelect.Root size="sm" className="pde-oas-native-select-light">
+        <NativeSelect.Field
+          value={serverUrl}
+          onChange={(event) => onChange(event.target.value)}
+          aria-label="Server URL"
+        >
+          {servers.map((server) => {
+            const url = resolveServerUrl(server.url, server.variables);
 
-          return (
-            <option key={server.url} value={url}>
-              {url}
-            </option>
-          );
-        })}
-      </select>
+            return (
+              <option key={server.url} value={url}>
+                {url}
+              </option>
+            );
+          })}
+        </NativeSelect.Field>
+        <NativeSelect.Indicator />
+      </NativeSelect.Root>
     </div>
   );
 });
@@ -2103,11 +2228,11 @@ const OasDocumentInner = forwardRef(OasDocumentImpl);
 const OasDocument = forwardRef<OasDocumentHandle, OasDocumentProps>(
   function OasDocument(props, ref) {
     return (
-      <ChakraProvider value={defaultSystem}>
+      <OptionalChakraProvider>
         <CodeBlockAdapterProvider value={shikiAdapter}>
           <OasDocumentInner ref={ref} {...props} />
         </CodeBlockAdapterProvider>
-      </ChakraProvider>
+      </OptionalChakraProvider>
     );
   },
 );

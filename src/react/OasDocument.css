@@ -699,6 +699,24 @@
   color: var(--pde-color-text-tertiary);
 }
 
+.pde-oas-field-badge {
+  font-size: var(--pde-font-size-xs);
+  color: var(--pde-color-text-tertiary);
+  background: var(--pde-color-surface-subtle);
+  padding: 1px 6px;
+  border-radius: var(--pde-radius-sm);
+}
+
+.pde-oas-field-badge-readonly {
+  color: var(--pde-color-info);
+  background: var(--pde-color-accent-bg);
+}
+
+.pde-oas-field-badge-writeonly {
+  color: var(--pde-color-warning);
+  background: var(--pde-color-surface-subtle);
+}
+
 .pde-oas-location-badge {
   font-size: var(--pde-font-size-xs);
   color: var(--pde-color-text-tertiary);
@@ -711,6 +729,22 @@
   margin-top: var(--pde-space-1);
   font-size: var(--pde-font-size-sm);
   color: var(--pde-color-text-secondary);
+}
+
+.pde-oas-field-constraints {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.pde-oas-constraint-badge {
+  font-family: var(--pde-font-mono);
+  font-size: 11px;
+  color: var(--pde-color-text-tertiary);
+  background: var(--pde-color-surface-subtle);
+  padding: 1px 6px;
+  border-radius: 3px;
 }
 
 .pde-oas-show-children-button {
@@ -881,21 +915,15 @@
   overflow: hidden;
 }
 
-.pde-oas-language-select {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+.pde-oas-native-select-dark [data-part="field"] {
+  background: rgba(255,255,255,0.1);
+  border-color: rgba(255,255,255,0.15);
   color: #c9d1d9;
-  font-size: var(--pde-font-size-xs);
-  padding: 3px 8px;
-  border-radius: var(--pde-radius-sm);
-  cursor: pointer;
-  font-family: inherit;
-  flex-shrink: 0;
+  font-size: 12px;
 }
 
-.pde-oas-language-select option {
-  background: #1c2128;
-  color: #e6edf3;
+.pde-oas-native-select-dark [data-part="indicator"] {
+  color: #8b949e;
 }
 
 .pde-oas-code-icon-button {
@@ -930,6 +958,7 @@
   background: var(--pde-color-code-bg);
   flex: 1 1 auto;
   overflow-y: auto;
+  overflow-x: auto;
   max-height: 60vh;
   min-height: 0;
 }
@@ -1090,17 +1119,9 @@
   white-space: nowrap;
 }
 
-.pde-oas-server-select {
-  flex: 1;
-  min-width: 0;
-  background: var(--pde-color-surface);
-  border: 1px solid var(--pde-color-border-subtle);
-  color: var(--pde-color-text-primary);
-  font-size: var(--pde-font-size-xs);
-  padding: 4px 8px;
-  border-radius: var(--pde-radius-sm);
-  cursor: pointer;
+.pde-oas-native-select-light [data-part="field"] {
   font-family: var(--pde-font-mono);
+  font-size: var(--pde-font-size-xs);
 }
 
 /* ==========================================================================
@@ -1376,43 +1397,32 @@
 }
 
 /* ==========================================================================
-   Custom scrollbars
+   Unified custom scrollbars for all scrollable areas
    ========================================================================== */
 
-.pde-oas-content::-webkit-scrollbar,
-.pde-oas-sidebar::-webkit-scrollbar,
-.pde-oas-code-sticky::-webkit-scrollbar {
-  width: 6px;
+.pde-oas-root *::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
 
-.pde-oas-content::-webkit-scrollbar-track,
-.pde-oas-sidebar::-webkit-scrollbar-track,
-.pde-oas-code-sticky::-webkit-scrollbar-track {
+.pde-oas-root *::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.pde-oas-content::-webkit-scrollbar-thumb,
-.pde-oas-sidebar::-webkit-scrollbar-thumb,
-.pde-oas-code-sticky::-webkit-scrollbar-thumb {
+.pde-oas-root *::-webkit-scrollbar-thumb {
   background: var(--pde-color-border-default);
-  border-radius: 3px;
+  border-radius: 4px;
 }
 
-.pde-oas-content::-webkit-scrollbar-thumb:hover,
-.pde-oas-sidebar::-webkit-scrollbar-thumb:hover,
-.pde-oas-code-sticky::-webkit-scrollbar-thumb:hover {
+.pde-oas-root *::-webkit-scrollbar-thumb:hover {
   background: var(--pde-color-border-strong);
 }
 
-.pde-oas-root[data-theme="dark"] .pde-oas-content::-webkit-scrollbar-thumb,
-.pde-oas-root[data-theme="dark"] .pde-oas-sidebar::-webkit-scrollbar-thumb,
-.pde-oas-root[data-theme="dark"] .pde-oas-code-sticky::-webkit-scrollbar-thumb {
+.pde-oas-root[data-theme="dark"] *::-webkit-scrollbar-thumb {
   background: var(--pde-color-border-strong);
 }
 
-.pde-oas-root[data-theme="dark"] .pde-oas-content::-webkit-scrollbar-thumb:hover,
-.pde-oas-root[data-theme="dark"] .pde-oas-sidebar::-webkit-scrollbar-thumb:hover,
-.pde-oas-root[data-theme="dark"] .pde-oas-code-sticky::-webkit-scrollbar-thumb:hover {
+.pde-oas-root[data-theme="dark"] *::-webkit-scrollbar-thumb:hover {
   background: var(--pde-color-text-tertiary);
 }
 
