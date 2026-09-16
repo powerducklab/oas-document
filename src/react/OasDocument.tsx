@@ -130,13 +130,27 @@ const SHIKI_LANGS = [
   "http",
 ] as const;
 
-const shikiAdapter = createShikiAdapter({
-  load: () =>
-    getSingletonHighlighter({
-      themes: ["github-dark", "github-light"],
-      langs: SHIKI_LANGS as unknown as string[],
-    }),
+/**
+ * Shiki highlighter adapters (module-level, lazy async load).
+ *
+ * `getSingletonHighlighter` caches by (themes, langs), so calling it twice
+ * with the same config returns the same highlighter instance. We only pick
+ * which theme the adapter renders, switching on the active UI theme.
+ */
+const SHIKI_HIGHLIGHTER_LOAD = () =>
+  getSingletonHighlighter({
+    themes: ["github-dark", "github-light"],
+    langs: SHIKI_LANGS as unknown as string[],
+  });
+
+const shikiAdapterDark = createShikiAdapter({
+  load: SHIKI_HIGHLIGHTER_LOAD,
   theme: "github-dark",
+});
+
+const shikiAdapterLight = createShikiAdapter({
+  load: SHIKI_HIGHLIGHTER_LOAD,
+  theme: "github-light",
 });
 
 /** Map codegen language IDs to shiki grammar IDs. */
@@ -615,7 +629,7 @@ type FieldNameProps = {
 };
 
 const FieldName = memo(function FieldName({ name }: FieldNameProps) {
-  const [copied, setCopied] = useState(false);
+  const [status, setStatus] = useState<"idle" | "copied" | "error">("idle");
 
   const timerRef = useRef<number | null>(null);
 
@@ -631,24 +645,21 @@ const FieldName = memo(function FieldName({ name }: FieldNameProps) {
   const handleClick = useCallback(async () => {
     const ok = await copyToClipboard(name);
 
-    if (!ok) {
-      return;
-    }
-
-    setCopied(true);
-
     if (timerRef.current !== null) {
       window.clearTimeout(timerRef.current);
+      timerRef.current = null;
     }
 
-    timerRef.current = window.setTimeout(() => setCopied(false), 1000);
+    setStatus(ok ? "copied" : "error");
+
+    timerRef.current = window.setTimeout(() => setStatus("idle"), 1500);
   }, [name]);
 
   return (
     <code
       className={cn(
         "pde-oas-field-name",
-        copied && "pde-oas-field-name-copied",
+        status === "copied" && "pde-oas-field-name-copied",
       )}
       title="Click to copy"
       onClick={handleClick}
@@ -662,6 +673,17 @@ const FieldName = memo(function FieldName({ name }: FieldNameProps) {
       }}
     >
       {name}
+      {status !== "idle" ? (
+        <span
+          className={cn(
+            "pde-oas-copied-tooltip",
+            "is-visible",
+            status === "error" && "is-error",
+          )}
+        >
+          {status === "copied" ? "Copied!" : "Failed"}
+        </span>
+      ) : null}
     </code>
   );
 });
@@ -1246,6 +1268,7 @@ type CodeExamplesPanelProps = {
   serverUrl: string;
   document: OasRootDocument;
   languageGroups: Map<string, string[]>;
+  theme: "light" | "dark";
   onRequestClose?: () => void;
 };
 
@@ -1254,6 +1277,7 @@ function CodeExamplesPanel({
   serverUrl,
   document,
   languageGroups,
+  theme,
   onRequestClose,
 }: CodeExamplesPanelProps) {
   const languages = useMemo(
@@ -1413,7 +1437,7 @@ function CodeExamplesPanel({
           </div>
 
           <div className="pde-oas-request-card-actions">
-            <CopyButton text={requestCode} variant="dark" />
+            <CopyButton text={requestCode} variant={theme} />
 
             {onRequestClose ? (
               <button
@@ -1428,11 +1452,11 @@ function CodeExamplesPanel({
           </div>
         </div>
 
-        <div className="pde-oas-code-block-dark">
+        <div className="pde-oas-code-block-request">
           <CodeBlock.Root
             code={requestCode}
             language={mapLanguageToShikiLang(language)}
-            colorScheme="dark"
+            colorScheme={theme}
           >
             <CodeBlock.Header>
               <CodeBlock.Code>
@@ -1473,11 +1497,11 @@ function CodeExamplesPanel({
         </div>
 
         {responseBody ? (
-          <div className="pde-oas-code-block-light">
+          <div className="pde-oas-code-block-response">
             <CodeBlock.Root
               code={responseBody}
               language="json"
-              colorScheme="light"
+              colorScheme={theme}
             >
               <CodeBlock.Header>
                 <CodeBlock.Code>
@@ -1485,10 +1509,10 @@ function CodeExamplesPanel({
                 </CodeBlock.Code>
               </CodeBlock.Header>
             </CodeBlock.Root>
-            <CopyButton text={responseBody} variant="light" />
+            <CopyButton text={responseBody} variant={theme} />
           </div>
         ) : (
-          <div className="pde-oas-code-block-light pde-oas-code-block-empty">
+          <div className="pde-oas-code-block-response pde-oas-code-block-empty">
             <p className="pde-oas-empty-section-text">
               No response body defined
             </p>
@@ -1508,6 +1532,7 @@ type OperationSectionProps = {
   document: OasRootDocument;
   serverUrl: string;
   languageGroups: Map<string, string[]>;
+  theme: "light" | "dark";
   showCodeColumn: boolean;
 };
 
@@ -1516,6 +1541,7 @@ const OperationSection = memo(function OperationSection({
   document,
   serverUrl,
   languageGroups,
+  theme,
   showCodeColumn,
 }: OperationSectionProps) {
   return (
@@ -1590,6 +1616,7 @@ const OperationSection = memo(function OperationSection({
               serverUrl={serverUrl}
               document={document}
               languageGroups={languageGroups}
+              theme={theme}
             />
           </div>
         </div>
@@ -2143,6 +2170,7 @@ function OasDocumentImpl(
           document={document}
           serverUrl={selectedServerUrl}
           languageGroups={languageGroups}
+          theme={theme}
           showCodeColumn={showCodeColumn}
         />
       ))}
@@ -2150,16 +2178,19 @@ function OasDocumentImpl(
   );
 
   /* ---- Desktop layout --------------------------------------------------- */
+  const shikiAdapter = theme === "dark" ? shikiAdapterDark : shikiAdapterLight;
+
   return (
-    <div
-      ref={rootRef}
-      className={rootClassName}
-      style={{
-        ...style,
-        ["--sidebar-width" as string]: `${treeWidth}px`,
-      }}
-      data-theme={theme}
-    >
+    <CodeBlockAdapterProvider value={shikiAdapter}>
+      <div
+        ref={rootRef}
+        className={rootClassName}
+        style={{
+          ...style,
+          ["--sidebar-width" as string]: `${treeWidth}px`,
+        }}
+        data-theme={theme}
+      >
       <Header
         config={header}
         theme={theme}
@@ -2209,6 +2240,7 @@ function OasDocumentImpl(
                 serverUrl={selectedServerUrl}
                 document={document}
                 languageGroups={languageGroups}
+                theme={theme}
                 onRequestClose={() => setCodeOpen(false)}
               />
             ) : null}
@@ -2265,7 +2297,8 @@ function OasDocumentImpl(
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </CodeBlockAdapterProvider>
   );
 }
 
@@ -2275,9 +2308,7 @@ const OasDocument = forwardRef<OasDocumentHandle, OasDocumentProps>(
   function OasDocument(props, ref) {
     return (
       <OptionalChakraProvider>
-        <CodeBlockAdapterProvider value={shikiAdapter}>
-          <OasDocumentInner ref={ref} {...props} />
-        </CodeBlockAdapterProvider>
+        <OasDocumentInner ref={ref} {...props} />
       </OptionalChakraProvider>
     );
   },
