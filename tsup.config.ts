@@ -19,6 +19,7 @@ export default defineConfig({
     "@powerduck/tree",
     "@powerduck/openapi-codegen",
     "@powerduck/md-editor",
+    "shiki",
   ],
   injectStyle: false,
 });

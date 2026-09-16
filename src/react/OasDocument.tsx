@@ -50,6 +50,17 @@ import type {
   OpenApiSchema,
 } from "../core";
 
+import {
+  ChakraProvider,
+  CodeBlock,
+  CodeBlockAdapterProvider,
+  createShikiAdapter,
+  defaultSystem,
+  Splitter,
+} from "@chakra-ui/react";
+
+import { getSingletonHighlighter } from "shiki";
+
 import { Tree } from "@powerduck/tree/react";
 
 import type { TreeHandle } from "@powerduck/tree/react";
@@ -95,39 +106,81 @@ const MARKDOWN_RENDER_OPTIONS: RendererOptions = {
   mindmap: false,
 };
 
+/* ==========================================================================
+   Shiki highlighter adapter (module-level, lazy async load)
+   ========================================================================== */
+
+const SHIKI_LANGS = [
+  "bash",
+  "javascript",
+  "python",
+  "go",
+  "ruby",
+  "php",
+  "java",
+  "csharp",
+  "swift",
+  "kotlin",
+  "json",
+  "shell",
+  "http",
+] as const;
+
+const shikiAdapter = createShikiAdapter({
+  load: () =>
+    getSingletonHighlighter({
+      themes: ["github-dark", "github-light"],
+      langs: SHIKI_LANGS as unknown as string[],
+    }),
+  theme: "github-dark",
+});
+
+/** Map codegen language IDs to shiki grammar IDs. */
+const SHIKI_LANG_MAP: Record<string, string> = {
+  curl: "bash",
+  javascript: "javascript",
+  typescript: "javascript",
+  python: "python",
+  go: "go",
+  ruby: "ruby",
+  php: "php",
+  java: "java",
+  csharp: "csharp",
+  swift: "swift",
+  kotlin: "kotlin",
+  json: "json",
+  shell: "shell",
+  http: "http",
+};
+
+function mapLanguageToShikiLang(language: string): string {
+  return SHIKI_LANG_MAP[language] ?? "bash";
+}
+
+/* ==========================================================================
+   Generator options — grouped by language (two-level selector)
+   ========================================================================== */
+
 /**
- * Preferred generators surfaced in the language dropdown. Falls back to the
- * full list when none of these are registered.
+ * Returns the full list of available generators grouped by language.
  */
-const PREFERRED_GENERATORS: Array<{ language: string; client: string; label: string }> = [
-  { language: "curl", client: "curl", label: "cURL" },
-  { language: "javascript", client: "fetch", label: "JavaScript (fetch)" },
-  { language: "javascript", client: "axios", label: "JavaScript (axios)" },
-  { language: "python", client: "requests", label: "Python (requests)" },
-  { language: "go", client: "native", label: "Go" },
-];
-
-function getGeneratorOptions(): Array<{
-  language: string;
-  client: string;
-  label: string;
-}> {
+function getLanguageGroups(): Map<string, string[]> {
   const available = list();
+  const groups = new Map<string, string[]>();
 
-  const preferred = PREFERRED_GENERATORS.filter((g) =>
-    available.some(
-      (a) => a.language === g.language && a.client === g.client,
-    ),
-  );
+  for (const gen of available) {
+    const clients = groups.get(gen.language);
 
-  if (preferred.length > 0) {
-    return preferred;
+    if (clients) {
+      if (!clients.includes(gen.client)) {
+        clients.push(gen.client);
+      }
+    } else {
+      groups.set(gen.language, [gen.client]);
+    }
   }
 
-  return available.map((g) => ({
-    ...g,
-    label: `${g.language} (${g.client})`,
-  }));
+  return groups;
 }
 
 /* ==========================================================================
@@ -1000,7 +1053,7 @@ type CodeExamplesPanelProps = {
   operation: OasOperation;
   serverUrl: string;
   document: OasRootDocument;
-  generators: Array<{ language: string; client: string; label: string }>;
+  languageGroups: Map<string, string[]>;
   onRequestClose?: () => void;
 };
 
@@ -1008,31 +1061,39 @@ function CodeExamplesPanel({
   operation,
   serverUrl,
   document,
-  generators,
+  languageGroups,
   onRequestClose,
 }: CodeExamplesPanelProps) {
-  const defaultGen = generators[0] ?? {
-    language: "curl",
-    client: "curl",
-    label: "cURL",
-  };
-
-  const [genKey, setGenKey] = useState(
-    `${defaultGen.language}/${defaultGen.client}`,
+  const languages = useMemo(
+    () => Array.from(languageGroups.keys()),
+    [languageGroups],
   );
 
+  const defaultLanguage = languages.includes("curl") ? "curl" : languages[0] ?? "curl";
+  const defaultClients = languageGroups.get(defaultLanguage) ?? [];
+  const defaultClient = defaultClients[0] ?? "curl";
+
+  const [language, setLanguage] = useState(defaultLanguage);
+  const [client, setClient] = useState(defaultClient);
+
+  // Reset when the language groups change (e.g. new document loaded).
   useEffect(() => {
-    setGenKey(`${defaultGen.language}/${defaultGen.client}`);
-  }, [defaultGen.language, defaultGen.client]);
+    const lang = languages.includes("curl") ? "curl" : languages[0] ?? "curl";
+    const clients = languageGroups.get(lang) ?? [];
+    setLanguage(lang);
+    setClient(clients[0] ?? "curl");
+  }, [languageGroups, languages]);
 
-  const selectedGen = useMemo(() => {
-    const [language, client] = genKey.split("/");
+  const availableClients = languageGroups.get(language) ?? [];
 
-    return (
-      generators.find((g) => g.language === language && g.client === client) ??
-      generators[0]
-    );
-  }, [genKey, generators]);
+  const handleLanguageChange = useCallback(
+    (nextLanguage: string) => {
+      setLanguage(nextLanguage);
+      const clients = languageGroups.get(nextLanguage) ?? [];
+      setClient(clients[0] ?? "");
+    },
+    [languageGroups],
+  );
 
   const responseEntries = useMemo(
     () => sortResponseEntries(Object.entries(operation.responses)),
@@ -1049,7 +1110,7 @@ function CodeExamplesPanel({
 
   /* ---- Request code via @powerduck/openapi-codegen ---------------------- */
   const requestCode = useMemo(() => {
-    if (!selectedGen) {
+    if (!language || !client) {
       return "";
     }
 
@@ -1058,14 +1119,14 @@ function CodeExamplesPanel({
         document,
         path: operation.path,
         method: operation.method,
-        language: selectedGen.language,
-        client: selectedGen.client,
+        language,
+        client,
         serverUrl,
       });
     } catch {
       return "";
     }
-  }, [document, operation.path, operation.method, selectedGen, serverUrl]);
+  }, [document, operation.path, operation.method, language, client, serverUrl]);
 
   const responseCode = useMemo(() => {
     const entry = responseEntries.find(([status]) => status === activeStatus);
@@ -1113,18 +1174,33 @@ function CodeExamplesPanel({
           </div>
 
           <div className="pde-oas-request-card-actions">
-            <select
-              value={genKey}
-              onChange={(event) => setGenKey(event.target.value)}
-              className="pde-oas-language-select"
-              aria-label="Code example language"
-            >
-              {generators.map((g) => (
-                <option key={`${g.language}/${g.client}`} value={`${g.language}/${g.client}`}>
-                  {g.label}
-                </option>
-              ))}
-            </select>
+            <div className="pde-oas-language-selectors">
+              <select
+                value={language}
+                onChange={(event) => handleLanguageChange(event.target.value)}
+                className="pde-oas-language-select"
+                aria-label="Code language"
+              >
+                {languages.map((lang) => (
+                  <option key={lang} value={lang}>
+                    {lang}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={client}
+                onChange={(event) => setClient(event.target.value)}
+                className="pde-oas-language-select"
+                aria-label="HTTP client"
+              >
+                {availableClients.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </div>
 
             <button
               type="button"
@@ -1149,9 +1225,17 @@ function CodeExamplesPanel({
         </div>
 
         <div className="pde-oas-code-block-dark">
-          <pre className="pde-oas-code-block-code">
-            <code>{requestCode}</code>
-          </pre>
+          <CodeBlock.Root
+            code={requestCode}
+            language={mapLanguageToShikiLang(language)}
+            colorScheme="dark"
+          >
+            <CodeBlock.Header>
+              <CodeBlock.Code>
+                <CodeBlock.CodeText />
+              </CodeBlock.Code>
+            </CodeBlock.Header>
+          </CodeBlock.Root>
           <CopyButton text={requestCode} variant="dark" />
         </div>
       </div>
@@ -1187,9 +1271,17 @@ function CodeExamplesPanel({
           </div>
 
           <div className="pde-oas-code-block-light">
-            <pre className="pde-oas-code-block-code">
-              <code>{responseCode}</code>
-            </pre>
+            <CodeBlock.Root
+              code={responseCode}
+              language="json"
+              colorScheme="light"
+            >
+              <CodeBlock.Header>
+                <CodeBlock.Code>
+                  <CodeBlock.CodeText />
+                </CodeBlock.Code>
+              </CodeBlock.Header>
+            </CodeBlock.Root>
             <CopyButton text={responseCode} variant="light" />
           </div>
         </div>
@@ -1206,7 +1298,7 @@ type OperationSectionProps = {
   operation: OasOperation;
   document: OasRootDocument;
   serverUrl: string;
-  generators: Array<{ language: string; client: string; label: string }>;
+  languageGroups: Map<string, string[]>;
   showCodeColumn: boolean;
 };
 
@@ -1214,7 +1306,7 @@ const OperationSection = memo(function OperationSection({
   operation,
   document,
   serverUrl,
-  generators,
+  languageGroups,
   showCodeColumn,
 }: OperationSectionProps) {
   return (
@@ -1288,7 +1380,7 @@ const OperationSection = memo(function OperationSection({
               operation={operation}
               serverUrl={serverUrl}
               document={document}
-              generators={generators}
+              languageGroups={languageGroups}
             />
           </div>
         </div>
@@ -1490,8 +1582,8 @@ function OasDocumentImpl(
     initialTheme,
   });
 
-  /* ---- Generator options (stable) --------------------------------------- */
-  const generators = useMemo(() => getGeneratorOptions(), []);
+  /* ---- Generator options grouped by language (stable) ------------------- */
+  const languageGroups = useMemo(() => getLanguageGroups(), []);
 
   /* ---- Server url state ------------------------------------------------- */
   const [selectedServerUrl, setSelectedServerUrl] = useState(() => {
@@ -1602,23 +1694,25 @@ function OasDocumentImpl(
             return;
           }
 
-          // Find the most visible entry.
-          let best: IntersectionObserverEntry | null = null;
+          // With rootMargin "-45% 0px -50% 0px" and threshold 0, each entry
+          // represents a section crossing the thin ~5% trigger band at ~45%
+          // from the viewport top. Only one section should be intersecting
+          // at a time; pick the entry whose target is currently intersecting.
+          const active = entries.find((e) => e.isIntersecting);
 
-          for (const entry of entries) {
-            if (!best || entry.intersectionRatio > best.intersectionRatio) {
-              best = entry;
-            }
-          }
-
-          if (!best) {
+          if (!active) {
             return;
           }
 
-          const target = best.target as HTMLElement;
+          const target = active.target as HTMLElement;
           const operationId = target.dataset.opSection;
 
           if (!operationId) {
+            return;
+          }
+
+          // Only update if the active operation actually changed.
+          if (selectedOperation?.id === operationId) {
             return;
           }
 
@@ -1639,7 +1733,8 @@ function OasDocumentImpl(
       },
       {
         root: container,
-        threshold: [0.25, 0.5, 0.75],
+        rootMargin: "-45% 0px -50% 0px",
+        threshold: 0,
       },
     );
 
@@ -1651,7 +1746,7 @@ function OasDocumentImpl(
       observer.disconnect();
       window.cancelAnimationFrame(rafId);
     };
-  }, [operations, operationTreeIndex, setSelectedOperation]);
+  }, [operations, operationTreeIndex, setSelectedOperation, selectedOperation?.id]);
 
   /* ---- Imperative handle ------------------------------------------------ */
   useImperativeHandle(
@@ -1829,7 +1924,7 @@ function OasDocumentImpl(
           operation={operation}
           document={document}
           serverUrl={selectedServerUrl}
-          generators={generators}
+          languageGroups={languageGroups}
           showCodeColumn={showCodeColumn}
         />
       ))}
@@ -1895,7 +1990,7 @@ function OasDocumentImpl(
                 operation={selectedOperation}
                 serverUrl={selectedServerUrl}
                 document={document}
-                generators={generators}
+                languageGroups={languageGroups}
                 onRequestClose={() => setCodeOpen(false)}
               />
             ) : null}
@@ -1904,31 +1999,70 @@ function OasDocumentImpl(
       ) : null}
 
       {/* Main workspace */}
-      <div className="pde-oas-workspace">
-        {showTree && !isTablet ? sidebar : null}
+      {showTree && !isTablet ? (
+        <Splitter.Root
+          orientation="horizontal"
+          defaultSize={[`${treeWidth}px`]}
+          panels={[
+            { id: "pde-oas-sidebar", minSize: "200px", maxSize: "480px" },
+            { id: "pde-oas-content" },
+          ]}
+          className="pde-oas-splitter"
+        >
+          <Splitter.Panel id="pde-oas-sidebar" className="pde-oas-splitter-sidebar">
+            {sidebar}
+          </Splitter.Panel>
 
-        <div className="pde-oas-main-region">
-          {isTablet ? (
-            <div className="pde-oas-content-mobile-bar">
-              <button
-                type="button"
-                className="pde-oas-view-code-button"
-                onClick={() => setCodeOpen(true)}
-                disabled={!selectedOperation}
-              >
-                <IoMdCode />
-                Code
-              </button>
+          <Splitter.ResizeTrigger
+            id="pde-oas-sidebar:pde-oas-content"
+            className="pde-oas-splitter-trigger"
+          >
+            <Splitter.ResizeTriggerSeparator className="pde-oas-splitter-separator" />
+          </Splitter.ResizeTrigger>
+
+          <Splitter.Panel id="pde-oas-content" className="pde-oas-splitter-content">
+            <div className="pde-oas-main-region">
+              {content}
             </div>
-          ) : null}
+          </Splitter.Panel>
+        </Splitter.Root>
+      ) : (
+        <div className="pde-oas-workspace">
+          <div className="pde-oas-main-region">
+            {isTablet ? (
+              <div className="pde-oas-content-mobile-bar">
+                <button
+                  type="button"
+                  className="pde-oas-view-code-button"
+                  onClick={() => setCodeOpen(true)}
+                  disabled={!selectedOperation}
+                >
+                  <IoMdCode />
+                  Code
+                </button>
+              </div>
+            ) : null}
 
-          {content}
+            {content}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
 
-const OasDocument = forwardRef(OasDocumentImpl);
+const OasDocumentInner = forwardRef(OasDocumentImpl);
+
+const OasDocument = forwardRef<OasDocumentHandle, OasDocumentProps>(
+  function OasDocument(props, ref) {
+    return (
+      <ChakraProvider value={defaultSystem}>
+        <CodeBlockAdapterProvider value={shikiAdapter}>
+          <OasDocumentInner ref={ref} {...props} />
+        </CodeBlockAdapterProvider>
+      </ChakraProvider>
+    );
+  },
+);
 
 export default OasDocument;

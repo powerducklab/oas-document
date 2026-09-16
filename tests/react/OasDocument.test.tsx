@@ -21,6 +21,15 @@ vi.mock("@powerduck/tree/react", () => ({
   Tree: () => <div data-testid="mock-tree" />,
 }));
 
+vi.mock("shiki", () => ({
+  getSingletonHighlighter: vi.fn(async () => ({
+    codeToHtml: vi.fn(() => "<span>highlighted</span>"),
+    dispose: vi.fn(),
+    loadedThemes: new Set(),
+    loadedLangs: new Set(),
+  })),
+}));
+
 // CSS imports are side-effect only; ignore them in tests.
 vi.mock("@powerduck/tree/react/index.css", () => ({}));
 vi.mock("@powerduck/md-editor/dist/style.css", () => ({}));

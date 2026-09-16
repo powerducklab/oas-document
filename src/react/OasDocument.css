@@ -89,6 +89,47 @@
 
   /* Motion */
   --pde-transition: 160ms ease;
+
+  /* ---- Tree component CSS variable aliases (--color-* → --pde-color-*) ---- */
+  --color-text-primary: var(--pde-color-text-primary);
+  --color-text-secondary: var(--pde-color-text-secondary);
+  --color-text-tertiary: var(--pde-color-text-tertiary);
+  --color-text-disabled: var(--pde-color-text-tertiary);
+  --color-surface: var(--pde-color-surface);
+  --color-surface-subtle: var(--pde-color-surface-subtle);
+  --color-surface-hover: var(--pde-color-surface-hover);
+  --color-surface-selected: var(--pde-color-surface-selected);
+  --color-border-subtle: var(--pde-color-border-subtle);
+  --color-border-default: var(--pde-color-border-default);
+  --color-border-strong: var(--pde-color-border-strong);
+  --color-accent: var(--pde-color-accent);
+  --color-accent-active: var(--pde-color-accent-hover);
+  --color-accent-bg: var(--pde-color-accent-bg);
+  --color-accent-bg-soft: var(--pde-color-accent-bg);
+  --color-text-accent: var(--pde-color-text-accent);
+  --color-focus-ring: var(--pde-color-accent);
+  --color-success: var(--pde-color-success);
+  --color-success-soft: var(--pde-color-surface-subtle);
+  --color-danger: var(--pde-color-danger);
+  --color-danger-soft: var(--pde-color-surface-subtle);
+  --color-warning: var(--pde-color-warning);
+  --color-warning-soft: var(--pde-color-surface-subtle);
+  --color-info: var(--pde-color-info);
+  --color-info-soft: var(--pde-color-surface-subtle);
+  --color-dynamic: var(--pde-color-accent);
+  --font-family-ui: var(--pde-font-ui);
+  --font-size-sm: var(--pde-font-size-sm);
+  --line-height-normal: 1.6;
+  --transition-fast: var(--pde-transition);
+  --radius-sm: var(--pde-radius-sm);
+  --radius-md: var(--pde-radius-md);
+  --radius-xs: 3px;
+  --radius-full: 9999px;
+  --icon-size-sm: 14px;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --shadow-lg: var(--pde-shadow-md);
 }
 
 /* ==========================================================================
@@ -142,6 +183,34 @@
 
   --pde-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
   --pde-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+
+  /* ---- Dark theme tree aliases (resolve to dark --pde-color-* values) ---- */
+  --color-text-primary: var(--pde-color-text-primary);
+  --color-text-secondary: var(--pde-color-text-secondary);
+  --color-text-tertiary: var(--pde-color-text-tertiary);
+  --color-text-disabled: var(--pde-color-text-tertiary);
+  --color-surface: var(--pde-color-surface);
+  --color-surface-subtle: var(--pde-color-surface-subtle);
+  --color-surface-hover: var(--pde-color-surface-hover);
+  --color-surface-selected: var(--pde-color-surface-selected);
+  --color-border-subtle: var(--pde-color-border-subtle);
+  --color-border-default: var(--pde-color-border-default);
+  --color-border-strong: var(--pde-color-border-strong);
+  --color-accent: var(--pde-color-accent);
+  --color-accent-active: var(--pde-color-accent-hover);
+  --color-accent-bg: var(--pde-color-accent-bg);
+  --color-accent-bg-soft: var(--pde-color-accent-bg);
+  --color-text-accent: var(--pde-color-text-accent);
+  --color-focus-ring: var(--pde-color-accent);
+  --color-success: var(--pde-color-success);
+  --color-success-soft: var(--pde-color-surface-subtle);
+  --color-danger: var(--pde-color-danger);
+  --color-danger-soft: var(--pde-color-surface-subtle);
+  --color-warning: var(--pde-color-warning);
+  --color-warning-soft: var(--pde-color-surface-subtle);
+  --color-info: var(--pde-color-info);
+  --color-info-soft: var(--pde-color-surface-subtle);
+  --color-dynamic: var(--pde-color-accent);
 }
 
 /* ==========================================================================
@@ -151,7 +220,6 @@
 .pde-oas-root {
   display: grid;
   grid-template-rows: var(--pde-header-height) 1fr;
-  grid-template-columns: var(--sidebar-width, var(--pde-sidebar-width)) 1fr;
   height: 100%;
   min-height: 100vh;
   background: var(--pde-color-canvas);
@@ -169,6 +237,59 @@
 .pde-oas-root-tablet,
 .pde-oas-root-mobile {
   grid-template-columns: 1fr;
+}
+
+/* ==========================================================================
+   Splitter (draggable sidebar)
+   ========================================================================== */
+
+.pde-oas-splitter {
+  grid-row: 2;
+  min-height: 0;
+  height: 100%;
+}
+
+.pde-oas-splitter-sidebar {
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.pde-oas-splitter-sidebar > .pde-oas-sidebar {
+  flex: 1;
+  overflow: hidden;
+}
+
+.pde-oas-splitter-content {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.pde-oas-splitter-trigger {
+  width: 1px !important;
+  min-width: 1px !important;
+  max-width: 1px !important;
+  padding: 0 !important;
+  background: transparent !important;
+  cursor: col-resize;
+  position: relative;
+  z-index: 10;
+}
+
+.pde-oas-splitter-separator {
+  width: 1px !important;
+  min-width: 1px !important;
+  background: var(--pde-color-border-subtle);
+  transition: background var(--pde-transition);
+}
+
+.pde-oas-splitter-trigger:hover .pde-oas-splitter-separator,
+.pde-oas-splitter-trigger[data-state="dragging"] .pde-oas-splitter-separator {
+  background: var(--pde-color-accent);
 }
 
 /* ==========================================================================
@@ -361,7 +482,7 @@
   gap: var(--pde-space-10);
   padding: var(--pde-space-8) 0;
   border-top: 1px solid var(--pde-color-border-subtle);
-  max-width: var(--pde-content-max-width);
+  position: relative;
 }
 
 @media (max-width: 1200px) {
@@ -696,6 +817,8 @@
   display: flex;
   flex-direction: column;
   gap: var(--pde-space-4);
+  max-height: calc(100vh - var(--pde-header-height) - var(--pde-space-8));
+  overflow-y: auto;
 }
 
 /* ---- Request card (dark) ------------------------------------------------- */
@@ -736,6 +859,12 @@
   display: flex;
   align-items: center;
   gap: var(--pde-space-2);
+}
+
+.pde-oas-language-selectors {
+  display: flex;
+  align-items: center;
+  gap: var(--pde-space-1);
 }
 
 .pde-oas-language-select {
@@ -1210,6 +1339,80 @@
   border: none;
   border-top: 1px solid var(--pde-color-border-subtle);
   margin: var(--pde-space-4) 0;
+}
+
+/* ==========================================================================
+   Custom scrollbars
+   ========================================================================== */
+
+.pde-oas-content::-webkit-scrollbar,
+.pde-oas-sidebar::-webkit-scrollbar,
+.pde-oas-code-sticky::-webkit-scrollbar {
+  width: 6px;
+}
+
+.pde-oas-content::-webkit-scrollbar-track,
+.pde-oas-sidebar::-webkit-scrollbar-track,
+.pde-oas-code-sticky::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.pde-oas-content::-webkit-scrollbar-thumb,
+.pde-oas-sidebar::-webkit-scrollbar-thumb,
+.pde-oas-code-sticky::-webkit-scrollbar-thumb {
+  background: var(--pde-color-border-default);
+  border-radius: 3px;
+}
+
+.pde-oas-content::-webkit-scrollbar-thumb:hover,
+.pde-oas-sidebar::-webkit-scrollbar-thumb:hover,
+.pde-oas-code-sticky::-webkit-scrollbar-thumb:hover {
+  background: var(--pde-color-border-strong);
+}
+
+.pde-oas-root[data-theme="dark"] .pde-oas-content::-webkit-scrollbar-thumb,
+.pde-oas-root[data-theme="dark"] .pde-oas-sidebar::-webkit-scrollbar-thumb,
+.pde-oas-root[data-theme="dark"] .pde-oas-code-sticky::-webkit-scrollbar-thumb {
+  background: var(--pde-color-border-strong);
+}
+
+.pde-oas-root[data-theme="dark"] .pde-oas-content::-webkit-scrollbar-thumb:hover,
+.pde-oas-root[data-theme="dark"] .pde-oas-sidebar::-webkit-scrollbar-thumb:hover,
+.pde-oas-root[data-theme="dark"] .pde-oas-code-sticky::-webkit-scrollbar-thumb:hover {
+  background: var(--pde-color-text-tertiary);
+}
+
+/* ==========================================================================
+   Chakra CodeBlock overrides
+   ========================================================================== */
+
+.pde-oas-code-block-dark .chakra-code-block,
+.pde-oas-code-block-light .chakra-code-block {
+  margin: 0;
+  background: transparent !important;
+}
+
+.pde-oas-code-block-dark .chakra-code-block__code,
+.pde-oas-code-block-dark pre,
+.pde-oas-code-block-light .chakra-code-block__code,
+.pde-oas-code-block-light pre {
+  margin: 0 !important;
+  padding: var(--pde-space-4) !important;
+  font-family: var(--pde-font-mono) !important;
+  font-size: var(--pde-font-size-sm) !important;
+  line-height: 1.55 !important;
+  overflow-x: auto;
+  background: transparent !important;
+}
+
+.pde-oas-code-block-dark .chakra-code-block__code,
+.pde-oas-code-block-dark code {
+  color: var(--pde-color-code-text) !important;
+}
+
+.pde-oas-code-block-light .chakra-code-block__code,
+.pde-oas-code-block-light code {
+  color: var(--pde-color-text-primary) !important;
 }
 
 /* ==========================================================================

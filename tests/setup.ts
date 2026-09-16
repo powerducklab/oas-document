@@ -9,3 +9,12 @@ class IntersectionObserverStub {
 
 (globalThis as Record<string, unknown>).IntersectionObserver =
   IntersectionObserverStub;
+
+// jsdom does not provide ResizeObserver — stub it for Chakra Splitter tests.
+class ResizeObserverStub {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+
+(globalThis as Record<string, unknown>).ResizeObserver = ResizeObserverStub;
