@@ -52,16 +52,14 @@ import type {
 } from "../core";
 
 import {
-  CodeBlock,
-  CodeBlockAdapterProvider,
   createListCollection,
-  createShikiAdapter,
   NativeSelect,
   Select,
   Splitter,
 } from "@chakra-ui/react";
 
 import { getSingletonHighlighter } from "shiki";
+import type { Highlighter } from "shiki";
 
 import { Tree } from "@powerduck/tree/react";
 
@@ -131,27 +129,82 @@ const SHIKI_LANGS = [
 ] as const;
 
 /**
- * Shiki highlighter adapters (module-level, lazy async load).
+ * Module-level singleton shiki highlighter.
  *
- * `getSingletonHighlighter` caches by (themes, langs), so calling it twice
- * with the same config returns the same highlighter instance. We only pick
- * which theme the adapter renders, switching on the active UI theme.
+ * `getSingletonHighlighter` caches by (themes, langs). We load it once and
+ * reuse forever. Unlike Chakra's `createShikiAdapter`, we never call
+ * `dispose()` — the singleton must survive component unmount/remount cycles.
  */
-const SHIKI_HIGHLIGHTER_LOAD = () =>
-  getSingletonHighlighter({
-    themes: ["github-dark", "github-light"],
-    langs: SHIKI_LANGS as unknown as string[],
-  });
+let highlighterPromise: Promise<Highlighter> | null = null;
 
-const shikiAdapterDark = createShikiAdapter({
-  load: SHIKI_HIGHLIGHTER_LOAD,
-  theme: "github-dark",
-});
+function getHighlighter(): Promise<Highlighter> {
+  if (!highlighterPromise) {
+    highlighterPromise = getSingletonHighlighter({
+      themes: ["github-dark", "github-light"],
+      langs: SHIKI_LANGS as unknown as string[],
+    }).catch((err) => {
+      // Reset on failure so subsequent renders can retry.
+      highlighterPromise = null;
+      throw err;
+    });
+  }
+  return highlighterPromise;
+}
 
-const shikiAdapterLight = createShikiAdapter({
-  load: SHIKI_HIGHLIGHTER_LOAD,
-  theme: "github-light",
-});
+type HighlightedCodeProps = {
+  code: string;
+  language: string;
+  theme: "light" | "dark";
+  className?: string;
+};
+
+/**
+ * Renders syntax-highlighted code using the shared shiki singleton.
+ * Falls back to plain <pre><code> while the highlighter loads or on error.
+ */
+function HighlightedCode({ code, language, theme, className }: HighlightedCodeProps) {
+  const [html, setHtml] = useState<string>("");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    getHighlighter()
+      .then((highlighter) => {
+        if (cancelled) return;
+        try {
+          const result = highlighter.codeToHtml(code, {
+            lang: language,
+            theme: theme === "dark" ? "github-dark" : "github-light",
+          });
+          if (!cancelled) setHtml(result);
+        } catch {
+          if (!cancelled) setHtml("");
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setHtml("");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [code, language, theme]);
+
+  if (html) {
+    return (
+      <div
+        className={cn("pde-oas-highlighted-code", className)}
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+    );
+  }
+
+  return (
+    <pre className={cn("pde-oas-highlighted-code", "pde-oas-code-plain", className)}>
+      <code>{code}</code>
+    </pre>
+  );
+}
 
 /** Map codegen language IDs to shiki grammar IDs. */
 const SHIKI_LANG_MAP: Record<string, string> = {
@@ -1453,17 +1506,11 @@ function CodeExamplesPanel({
         </div>
 
         <div className="pde-oas-code-block-request">
-          <CodeBlock.Root
+          <HighlightedCode
             code={requestCode}
             language={mapLanguageToShikiLang(language)}
-            colorScheme={theme}
-          >
-            <CodeBlock.Header>
-              <CodeBlock.Code>
-                <CodeBlock.CodeText />
-              </CodeBlock.Code>
-            </CodeBlock.Header>
-          </CodeBlock.Root>
+            theme={theme}
+          />
         </div>
       </div>
 
@@ -1498,17 +1545,11 @@ function CodeExamplesPanel({
 
         {responseBody ? (
           <div className="pde-oas-code-block-response">
-            <CodeBlock.Root
+            <HighlightedCode
               code={responseBody}
               language="json"
-              colorScheme={theme}
-            >
-              <CodeBlock.Header>
-                <CodeBlock.Code>
-                  <CodeBlock.CodeText />
-                </CodeBlock.Code>
-              </CodeBlock.Header>
-            </CodeBlock.Root>
+              theme={theme}
+            />
             <CopyButton text={responseBody} variant={theme} />
           </div>
         ) : (
@@ -2178,10 +2219,8 @@ function OasDocumentImpl(
   );
 
   /* ---- Desktop layout --------------------------------------------------- */
-  const shikiAdapter = theme === "dark" ? shikiAdapterDark : shikiAdapterLight;
 
   return (
-    <CodeBlockAdapterProvider value={shikiAdapter}>
       <div
         ref={rootRef}
         className={rootClassName}
@@ -2298,7 +2337,6 @@ function OasDocumentImpl(
         </div>
       )}
       </div>
-    </CodeBlockAdapterProvider>
   );
 }
 

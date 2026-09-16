@@ -1021,6 +1021,48 @@
   color: var(--pde-color-text-primary);
 }
 
+/* ---- Highlighted code (direct shiki, no Chakra CodeBlock) -------------- */
+
+.pde-oas-highlighted-code {
+  margin: 0;
+  width: 100%;
+  overflow-x: auto;
+}
+
+.pde-oas-highlighted-code pre.shiki {
+  margin: 0;
+  padding: var(--pde-space-3) var(--pde-space-4);
+  font-family: var(--pde-font-mono);
+  font-size: var(--pde-font-size-sm);
+  line-height: 1.55;
+  background: transparent !important;
+  overflow-x: auto;
+}
+
+.pde-oas-highlighted-code pre.shiki code {
+  font-family: inherit;
+  font-size: inherit;
+  background: transparent;
+  padding: 0;
+}
+
+.pde-oas-code-plain {
+  margin: 0;
+  padding: var(--pde-space-3) var(--pde-space-4);
+  font-family: var(--pde-font-mono);
+  font-size: var(--pde-font-size-sm);
+  line-height: 1.55;
+  color: var(--pde-color-text-primary);
+  white-space: pre;
+  overflow-x: auto;
+}
+
+.pde-oas-code-plain code {
+  font-family: inherit;
+  background: transparent;
+  padding: 0;
+}
+
 /* ---- Copy buttons -------------------------------------------------------- */
 
 .pde-oas-copy-button {
@@ -1451,6 +1493,76 @@
   --color-prettylights-syntax-meta-diff-range: #d2a8ff;
   --color-prettylights-syntax-sublimelinter-gutter-mark: #484f58;
   --color-prettylights-syntax-constant-other-reference-link: #a5d6ff;
+}
+
+/* Force markdown body to use component theme, not md-editor's hardcoded light bg */
+.pde-oas-root .markdown-body,
+.pde-oas-root .pde-oas-markdown {
+  background: transparent;
+  color: var(--pde-color-text-primary);
+  font-size: var(--pde-font-size-md);
+  line-height: 1.6;
+}
+
+.pde-oas-root .markdown-body p,
+.pde-oas-root .pde-oas-markdown p {
+  color: var(--pde-color-text-primary);
+}
+
+.pde-oas-root .markdown-body h1,
+.pde-oas-root .markdown-body h2,
+.pde-oas-root .markdown-body h3,
+.pde-oas-root .markdown-body h4,
+.pde-oas-root .markdown-body h5,
+.pde-oas-root .markdown-body h6 {
+  color: var(--pde-color-text-primary);
+  border-bottom-color: var(--pde-color-border-subtle);
+}
+
+.pde-oas-root .markdown-body a {
+  color: var(--pde-color-accent);
+}
+
+.pde-oas-root .markdown-body code {
+  background: var(--pde-color-surface-subtle);
+  color: var(--pde-color-text-primary);
+}
+
+.pde-oas-root .markdown-body pre {
+  background: var(--pde-color-surface-subtle);
+  border-color: var(--pde-color-border-subtle);
+}
+
+.pde-oas-root .markdown-body pre code {
+  background: transparent;
+  color: var(--pde-color-text-primary);
+}
+
+.pde-oas-root .markdown-body blockquote {
+  color: var(--pde-color-text-secondary);
+  border-left-color: var(--pde-color-border-default);
+}
+
+.pde-oas-root .markdown-body table th {
+  background: var(--pde-color-surface-subtle);
+  color: var(--pde-color-text-primary);
+}
+
+.pde-oas-root .markdown-body table td {
+  color: var(--pde-color-text-primary);
+  border-color: var(--pde-color-border-subtle);
+}
+
+.pde-oas-root .markdown-body li {
+  color: var(--pde-color-text-primary);
+}
+
+.pde-oas-root .markdown-body hr {
+  border-bottom-color: var(--pde-color-border-subtle);
+}
+
+.pde-oas-root .markdown-body ::marker {
+  color: var(--pde-color-text-tertiary);
 }
 
 /* ==========================================================================
