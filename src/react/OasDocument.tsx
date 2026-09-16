@@ -53,7 +53,6 @@ import type {
 
 import {
   createListCollection,
-  NativeSelect,
   Select,
   Splitter,
 } from "@chakra-ui/react";
@@ -66,7 +65,7 @@ import { Tree } from "@powerduck/tree/react";
 import type { TreeHandle } from "@powerduck/tree/react";
 import type { TreeNode } from "@powerduck/tree";
 
-import { FiMenu } from "react-icons/fi";
+import { FiCopy, FiMenu } from "react-icons/fi";
 import {
   AiOutlineMinusCircle,
   AiOutlinePlusCircle,
@@ -661,14 +660,17 @@ const CopyButton = memo(function CopyButton({
       type="button"
       className={cn(
         "pde-oas-copy-button",
+        "pde-oas-copy-button-icon",
         variant === "dark"
           ? "pde-oas-copy-button-dark"
           : "pde-oas-copy-button-light",
         copied && "is-copied",
       )}
       onClick={handleClick}
+      title={copied ? "Copied" : "Copy code"}
+      aria-label={copied ? "Copied" : "Copy code"}
     >
-      {copied ? "Copied" : "Copy"}
+      <FiCopy size={14} />
     </button>
   );
 });
@@ -1687,28 +1689,41 @@ const ServerSelector = memo(function ServerSelector({
     return null;
   }
 
+  const serverUrls = servers.map((server) =>
+    resolveServerUrl(server.url, server.variables),
+  );
+
+  const serverCollection = createListCollection({
+    items: serverUrls,
+  });
+
   return (
     <div className="pde-oas-server-selector">
       <span className="pde-oas-server-selector-label">Server</span>
 
-      <NativeSelect.Root size="sm" className="pde-oas-native-select-light">
-        <NativeSelect.Field
-          value={serverUrl}
-          onChange={(event) => onChange(event.target.value)}
-          aria-label="Server URL"
-        >
-          {servers.map((server) => {
-            const url = resolveServerUrl(server.url, server.variables);
-
-            return (
-              <option key={server.url} value={url}>
-                {url}
-              </option>
-            );
-          })}
-        </NativeSelect.Field>
-        <NativeSelect.Indicator />
-      </NativeSelect.Root>
+      <Select.Root
+        size="sm"
+        collection={serverCollection}
+        value={serverUrl ? [serverUrl] : []}
+        onValueChange={(e) => onChange(e.value[0] ?? "")}
+        className="pde-oas-server-select"
+      >
+        <Select.Trigger aria-label="Server URL">
+          <Select.ValueText placeholder="Select server" />
+        </Select.Trigger>
+        <Select.Positioner>
+          <Select.Content>
+            <Select.List>
+              {serverUrls.map((url) => (
+                <Select.Item key={url} item={url}>
+                  <Select.ItemText>{url}</Select.ItemText>
+                  <Select.ItemIndicator />
+                </Select.Item>
+              ))}
+            </Select.List>
+          </Select.Content>
+        </Select.Positioner>
+      </Select.Root>
     </div>
   );
 });
