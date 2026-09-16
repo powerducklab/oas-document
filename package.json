@@ -43,6 +43,7 @@
   },
   "scripts": {
     "build": "tsup",
+    "postbuild": "ln -sf /Users/electron/powerduck-react/node_modules/react node_modules/react && ln -sf /Users/electron/powerduck-react/node_modules/react-dom node_modules/react-dom",
     "dev": "tsup --watch",
     "clean": "rm -rf dist coverage",
     "typecheck": "tsc --noEmit",
