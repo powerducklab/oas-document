@@ -53,6 +53,7 @@ import type {
 
 import {
   createListCollection,
+  ScrollArea,
   Select,
   Splitter,
 } from "@chakra-ui/react";
@@ -1508,11 +1509,18 @@ function CodeExamplesPanel({
         </div>
 
         <div className="pde-oas-code-block-request">
-          <HighlightedCode
-            code={requestCode}
-            language={mapLanguageToShikiLang(language)}
-            theme={theme}
-          />
+          <ScrollArea.Root variant="hover" h="320px">
+            <ScrollArea.Viewport>
+              <HighlightedCode
+                code={requestCode}
+                language={mapLanguageToShikiLang(language)}
+                theme={theme}
+              />
+            </ScrollArea.Viewport>
+            <ScrollArea.Scrollbar orientation="vertical">
+              <ScrollArea.Thumb />
+            </ScrollArea.Scrollbar>
+          </ScrollArea.Root>
         </div>
       </div>
 
@@ -1547,11 +1555,18 @@ function CodeExamplesPanel({
 
         {responseBody ? (
           <div className="pde-oas-code-block-response">
-            <HighlightedCode
-              code={responseBody}
-              language="json"
-              theme={theme}
-            />
+            <ScrollArea.Root variant="hover" h="280px">
+              <ScrollArea.Viewport>
+                <HighlightedCode
+                  code={responseBody}
+                  language="json"
+                  theme={theme}
+                />
+              </ScrollArea.Viewport>
+              <ScrollArea.Scrollbar orientation="vertical">
+                <ScrollArea.Thumb />
+              </ScrollArea.Scrollbar>
+            </ScrollArea.Root>
             <CopyButton text={responseBody} variant={theme} />
           </div>
         ) : (

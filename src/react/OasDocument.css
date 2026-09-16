@@ -1149,24 +1149,36 @@
   padding: 0;
 }
 
-/* ---- Code panel scroll areas --------------------------------------------- */
+/* ---- Code panel scroll areas (ScrollArea handles scrolling) ----------- */
 
-.pde-oas-code-block-request {
-  max-height: 320px;
-  overflow-y: auto;
-  overflow-x: auto;
-}
-
+.pde-oas-code-block-request,
 .pde-oas-code-block-response {
-  max-height: 280px;
-  overflow-y: auto;
-  overflow-x: auto;
+  position: relative;
 }
 
 .pde-oas-code-stack {
   display: flex;
   flex-direction: column;
   gap: var(--pde-space-3);
+}
+
+/* ---- md-editor code block cleanup (remove double borders) -------------- */
+
+.pde-oas-root .md-editor-codeblock {
+  border: 1px solid var(--pde-color-border-default);
+  border-radius: var(--pde-radius-lg);
+  overflow: hidden;
+  background: var(--code-bg);
+}
+
+.pde-oas-root .md-editor-codeblock-pre {
+  border: none;
+  background: var(--code-bg);
+}
+
+.pde-oas-root .md-editor-codeblock-header {
+  background: var(--code-header-bg);
+  border-bottom: 1px solid var(--code-border);
 }
 
 /* ---- Response card ------------------------------------------------------- */
@@ -1255,9 +1267,14 @@
   font-family: var(--pde-font-mono);
   font-size: var(--pde-font-size-xs);
   height: 28px;
-  min-width: 180px;
-  max-width: 280px;
+  min-width: 200px;
+  max-width: 360px;
   border-radius: var(--pde-radius-md);
+}
+
+.pde-oas-server-select [data-part="trigger"] [data-part="value-text"] {
+  overflow: visible;
+  text-overflow: clip;
 }
 
 .pde-oas-server-select [data-part="trigger"]:hover {
@@ -1650,7 +1667,7 @@
 }
 
 .pde-oas-root .markdown-body table td {
-  background: transparent;
+  background-color: transparent !important;
   color: var(--pde-color-text-primary);
   border-color: var(--pde-color-border-subtle);
 }
