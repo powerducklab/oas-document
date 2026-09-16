@@ -14,4 +14,6 @@ export type {
 export type {
   OasDocumentHandle,
   OasDocumentProps,
+  OasDocumentHeaderConfig,
+  OasDocumentNavItem,
 } from "./libs/types";

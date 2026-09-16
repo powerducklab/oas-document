@@ -8,6 +8,8 @@ import {
 
 import { buildDocTree, type TreeNode } from "@powerduck/tree";
 
+import { isRecord } from "./resolver";
+
 import { buildNavigationGroups, parseOperations } from "./operations";
 
 import type { OasNavigationGroup, OasOperation } from "./types";
@@ -24,8 +26,8 @@ export interface LoadOasDocumentOptions {
    * Validate and upgrade the input to OpenAPI 3.2 via
    * {@link upgradeOasTo32}. Defaults to `true`.
    *
-   * When `false`, the input is cast to an OAS 3.2 document directly with no
-   * validation or upgrade step.
+   * When `false`, the input must be a document object. Only its basic shape is
+   * checked; full schema validation and upgrading are skipped.
    */
   autoUpgrade?: boolean;
 
@@ -89,74 +91,35 @@ export async function loadOasDocument(
   input: OpenApiInput,
   options: LoadOasDocumentOptions = {},
 ): Promise<LoadOasDocumentResult> {
-  const { autoUpgrade = true, validateOptions } = options;
-
-  let document: Oas32Document | null = null;
-  let error: OpenApiUpgradeError | Error | null = null;
-  let warnings: string[] = [];
-
-  /* ---------------------------------------------------------------------- */
-  /* Resolve the document to an OAS 3.2 shape                                */
-  /* ---------------------------------------------------------------------- */
-
-  if (autoUpgrade) {
-    try {
+  try {
+    const { autoUpgrade = true, validateOptions } = options;
+    let document: Oas32Document;
+    if (autoUpgrade) {
       document = await upgradeOasTo32(input, validateOptions);
-    } catch (err) {
-      document = null;
-      error = err instanceof Error ? err : new Error(String(err));
+    } else {
+      if (!isRecord(input) || typeof (input as Record<string, unknown>).openapi !== "string" || !isRecord(input.info)) {
+        throw new TypeError("Without autoUpgrade, input must be an OpenAPI document object with info and openapi fields.");
+      }
+      document = input as Oas32Document;
     }
-  } else {
-    /*
-     * Skip validation and upgrade. Callers are responsible for passing a
-     * document that is already compatible with OAS 3.2.
-     */
-    document = input as unknown as Oas32Document;
-  }
-
-  /* ---------------------------------------------------------------------- */
-  /* Early return when the document is unavailable                           */
-  /* ---------------------------------------------------------------------- */
-
-  if (!document) {
+    const operations = parseOperations(document);
+    const navigationGroups = buildNavigationGroups(document, operations);
+    let tree: TreeNode[] = [];
+    let warnings: string[] = [];
+    try {
+      const result = buildDocTree(document);
+      warnings = result.warnings;
+      tree = result.root.children ?? [];
+    } catch (cause) {
+      // Preserve usable operations even when navigation cannot be built.
+      warnings.push(`Navigation is unavailable: ${cause instanceof Error ? cause.message : String(cause)}`);
+    }
+    return { document, error: null, operations, navigationGroups, tree, warnings };
+  } catch (cause) {
     return {
       document: null,
-      error,
-      operations: [],
-      navigationGroups: [],
-      tree: [],
-      warnings: [],
+      error: cause instanceof Error ? cause : new Error(String(cause)),
+      operations: [], navigationGroups: [], tree: [], warnings: [],
     };
   }
-
-  /* ---------------------------------------------------------------------- */
-  /* Derive operations, navigation and tree                                  */
-  /* ---------------------------------------------------------------------- */
-
-  const operations = parseOperations(document);
-
-  const navigationGroups = buildNavigationGroups(document, operations);
-
-  let tree: TreeNode[] = [];
-
-  try {
-    const result = buildDocTree(document);
-    warnings = result.warnings;
-    tree = result.root.children ?? [];
-  } catch {
-    /*
-     * Tree building failures must not fail the whole load. Keep the parsed
-     * operations and navigation, and expose an empty tree.
-     */
-    tree = [];
-  }
-
-  return {
-    document,
-    error,
-    operations,
-    navigationGroups,
-    tree,
-    warnings,
-  };
 }

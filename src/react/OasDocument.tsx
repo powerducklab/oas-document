@@ -1,6 +1,6 @@
 import "@powerduck/tree/react/index.css";
 import "@powerduck/md-editor/dist/style.css";
-import "./OasDocument.css"; 
+import "./OasDocument.css";
 
 import {
   forwardRef,
@@ -8,26 +8,17 @@ import {
   useCallback,
   useEffect,
   useImperativeHandle,
+  useId,
   useMemo,
   useRef,
   useState,
 } from "react";
 
-import type {
-  ForwardedRef,
-  ReactNode,
-} from "react";
+import type { ForwardedRef } from "react";
 
-import {
-  renderMarkdown,
-  type RendererOptions,
-} from "@powerduck/md-editor";
+import { renderMarkdown, type RendererOptions } from "@powerduck/md-editor";
 
-import {
-  generate,
-  list,
-  registerBuiltins,
-} from "@powerduck/openapi-codegen";
+import { generate, list, registerBuiltins } from "@powerduck/openapi-codegen";
 
 import {
   getPrimaryMediaType,
@@ -40,7 +31,6 @@ import {
   getProperty,
   getObjectProperty,
   isSchemaDeprecated,
-  resolveSchema,
   resolveServerUrl,
   stringifyDisplayValue,
 } from "../core";
@@ -55,14 +45,16 @@ import type {
 } from "../core";
 
 import {
-  createListCollection,
-  ScrollArea,
-  Select,
   Splitter,
 } from "@chakra-ui/react";
 
-import { getSingletonHighlighter } from "shiki";
-import type { Highlighter } from "shiki";
+import { HighlightedCode } from "./components/HighlightedCode";
+import { DeferredContent } from "./components/DeferredContent";
+import { buildExampleValue, getDirectFields, resolveSchemaRef, stringifyExample, type SchemaField } from "./libs/schema-display";
+import { CodePreferencesProvider, useCodePreferences } from "./components/CodePreferences";
+import { ReferenceSelect } from "./components/ReferenceSelect";
+import { LanguageIcon, languageLabel, clientLabel } from "./components/LanguageIcon";
+import { Drawer } from "./components/Drawer";
 
 import { Tree } from "@powerduck/tree/react";
 
@@ -70,10 +62,7 @@ import type { TreeHandle } from "@powerduck/tree/react";
 import type { TreeNode } from "@powerduck/tree";
 
 import { FiCopy, FiMenu } from "react-icons/fi";
-import {
-  AiOutlineMinusCircle,
-  AiOutlinePlusCircle,
-} from "react-icons/ai";
+import { AiOutlineMinusCircle, AiOutlinePlusCircle } from "react-icons/ai";
 import { IoMdClose } from "react-icons/io";
 import { IoMdCode } from "react-icons/io";
 import { LuMoon, LuSun } from "react-icons/lu";
@@ -92,7 +81,8 @@ import {
   buildOrderedOperations,
   cn,
   copyToClipboard,
-  resolveOperationFromNode,
+  createOperationResolver,
+  safeNavigationHref,
   useMediaQuery,
 } from "./libs/utils";
 
@@ -105,6 +95,7 @@ import { OptionalChakraProvider } from "./libs/OptionalChakraProvider";
 registerBuiltins();
 
 const MARKDOWN_RENDER_OPTIONS: RendererOptions = {
+  html: false,
   codeHighlight: true,
   tips: true,
   math: false,
@@ -115,101 +106,6 @@ const MARKDOWN_RENDER_OPTIONS: RendererOptions = {
    Shiki highlighter adapter (module-level, lazy async load)
    ========================================================================== */
 
-const SHIKI_LANGS = [
-  "bash",
-  "javascript",
-  "python",
-  "go",
-  "ruby",
-  "php",
-  "java",
-  "csharp",
-  "swift",
-  "kotlin",
-  "json",
-  "shell",
-  "http",
-] as const;
-
-/**
- * Module-level singleton shiki highlighter.
- *
- * `getSingletonHighlighter` caches by (themes, langs). We load it once and
- * reuse forever. Unlike Chakra's `createShikiAdapter`, we never call
- * `dispose()` — the singleton must survive component unmount/remount cycles.
- */
-let highlighterPromise: Promise<Highlighter> | null = null;
-
-function getHighlighter(): Promise<Highlighter> {
-  if (!highlighterPromise) {
-    highlighterPromise = getSingletonHighlighter({
-      themes: ["github-dark", "github-light"],
-      langs: SHIKI_LANGS as unknown as string[],
-    }).catch((err) => {
-      // Reset on failure so subsequent renders can retry.
-      highlighterPromise = null;
-      throw err;
-    });
-  }
-  return highlighterPromise;
-}
-
-type HighlightedCodeProps = {
-  code: string;
-  language: string;
-  theme: "light" | "dark";
-  className?: string;
-};
-
-/**
- * Renders syntax-highlighted code using the shared shiki singleton.
- * Falls back to plain <pre><code> while the highlighter loads or on error.
- */
-function HighlightedCode({ code, language, theme, className }: HighlightedCodeProps) {
-  const [html, setHtml] = useState<string>("");
-
-  useEffect(() => {
-    let cancelled = false;
-
-    getHighlighter()
-      .then((highlighter) => {
-        if (cancelled) return;
-        try {
-          const result = highlighter.codeToHtml(code, {
-            lang: language,
-            theme: theme === "dark" ? "github-dark" : "github-light",
-          });
-          if (!cancelled) setHtml(result);
-        } catch {
-          if (!cancelled) setHtml("");
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setHtml("");
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [code, language, theme]);
-
-  if (html) {
-    return (
-      <div
-        className={cn("pde-oas-highlighted-code", className)}
-        dangerouslySetInnerHTML={{ __html: html }}
-      />
-    );
-  }
-
-  return (
-    <pre className={cn("pde-oas-highlighted-code", "pde-oas-code-plain", className)}>
-      <code>{code}</code>
-    </pre>
-  );
-}
-
-/** Map codegen language IDs to shiki grammar IDs. */
 const SHIKI_LANG_MAP: Record<string, string> = {
   curl: "bash",
   javascript: "javascript",
@@ -291,250 +187,6 @@ type OasRootDocument = OpenApiDocument;
 /* ==========================================================================
    Internal schema helpers (preserved from original)
    ========================================================================== */
-
-function resolveJsonPointer(
-  document: unknown,
-  ref: string,
-): unknown {
-  if (!ref.startsWith("#/")) {
-    return undefined;
-  }
-
-  const segments = ref
-    .slice(2)
-    .split("/")
-    .map((segment) =>
-      decodeURIComponent(segment.replace(/~1/g, "/").replace(/~0/g, "~")),
-    );
-
-  let node: unknown = document;
-
-  for (const segment of segments) {
-    if (node === null || typeof node !== "object") {
-      return undefined;
-    }
-
-    node = (node as Record<string, unknown>)[segment];
-  }
-
-  return node;
-}
-
-function mergeSchemaObjects(
-  base: Record<string, unknown>,
-  next: Record<string, unknown>,
-): Record<string, unknown> {
-  const baseProperties =
-    (base.properties as Record<string, unknown>) || {};
-  const nextProperties =
-    (next.properties as Record<string, unknown>) || {};
-
-  const baseRequired = Array.isArray(base.required) ? base.required : [];
-  const nextRequired = Array.isArray(next.required) ? next.required : [];
-
-  return {
-    ...base,
-    ...next,
-    properties: { ...baseProperties, ...nextProperties },
-    required: Array.from(new Set([...baseRequired, ...nextRequired])),
-  };
-}
-
-function resolveSchemaRef(
-  schema: unknown,
-  document: OasRootDocument,
-  seen: Set<string> = new Set(),
-): OpenApiSchema | undefined {
-  if (!schema || typeof schema !== "object") {
-    return undefined;
-  }
-
-  const schemaObject = schema as Record<string, unknown>;
-  const ref = schemaObject.$ref;
-
-  if (typeof ref === "string") {
-    if (seen.has(ref)) {
-      return undefined;
-    }
-
-    const nextSeen = new Set(seen);
-    nextSeen.add(ref);
-
-    return resolveSchemaRef(
-      resolveJsonPointer(document, ref),
-      document,
-      nextSeen,
-    );
-  }
-
-  const allOf = schemaObject.allOf;
-
-  if (Array.isArray(allOf) && allOf.length > 0) {
-    const merged = allOf.reduce<Record<string, unknown>>(
-      (accumulator, entry) => {
-        const resolvedEntry = resolveSchemaRef(entry, document, seen) as
-          | Record<string, unknown>
-          | undefined;
-
-        return resolvedEntry
-          ? mergeSchemaObjects(accumulator, resolvedEntry)
-          : accumulator;
-      },
-      {},
-    );
-
-    const { allOf: _allOf, ...rest } = schemaObject;
-
-    return mergeSchemaObjects(merged, rest) as OpenApiSchema;
-  }
-
-  return (
-    (resolveSchema(schemaObject as OpenApiSchema) ??
-      (schemaObject as OpenApiSchema)) as OpenApiSchema
-  );
-}
-
-type SchemaField = {
-  path: string;
-  name: string;
-  schema: OpenApiSchema;
-  required: boolean;
-};
-
-function getDirectFields(
-  schema: OpenApiSchema | undefined,
-  document: OasRootDocument,
-): SchemaField[] {
-  const resolved = resolveSchemaRef(schema, document) as
-    | Record<string, unknown>
-    | undefined;
-
-  if (!resolved) {
-    return [];
-  }
-
-  if (resolved.type === "array" && resolved.items) {
-    return getDirectFields(resolved.items as OpenApiSchema, document);
-  }
-
-  const properties = resolved.properties as
-    | Record<string, OpenApiSchema>
-    | undefined;
-
-  if (!properties) {
-    return [];
-  }
-
-  const requiredList = Array.isArray(resolved.required)
-    ? (resolved.required as string[])
-    : [];
-
-  return Object.entries(properties).map(([name, propertySchema]) => ({
-    path: name,
-    name,
-    schema: (resolveSchemaRef(propertySchema, document) ??
-      propertySchema) as OpenApiSchema,
-    required: requiredList.includes(name),
-  }));
-}
-
-function buildExampleValue(
-  schema: unknown,
-  document: OasRootDocument,
-  depth = 0,
-): unknown {
-  if (depth > 6) {
-    return null;
-  }
-
-  const resolved = resolveSchemaRef(schema, document) as
-    | Record<string, unknown>
-    | undefined;
-
-  if (!resolved) {
-    return null;
-  }
-
-  if (resolved.example !== undefined) {
-    return resolved.example;
-  }
-
-  if (resolved.default !== undefined) {
-    return resolved.default;
-  }
-
-  if (Array.isArray(resolved.enum) && resolved.enum.length > 0) {
-    return resolved.enum[0];
-  }
-
-  /* oneOf / anyOf: pick the first alternative for example building. */
-  const oneOf = resolved.oneOf as unknown;
-  if (Array.isArray(oneOf) && oneOf.length > 0) {
-    return buildExampleValue(oneOf[0], document, depth + 1);
-  }
-
-  const anyOf = resolved.anyOf as unknown;
-  if (Array.isArray(anyOf) && anyOf.length > 0) {
-    return buildExampleValue(anyOf[0], document, depth + 1);
-  }
-
-  const type = resolved.type as string | undefined;
-
-  if (type === "array") {
-    return [buildExampleValue(resolved.items, document, depth + 1)];
-  }
-
-  if (type === "object" || resolved.properties) {
-    const properties = (resolved.properties as Record<string, unknown>) || {};
-
-    return Object.fromEntries(
-      Object.entries(properties).map(([name, propertySchema]) => [
-        name,
-        buildExampleValue(propertySchema, document, depth + 1),
-      ]),
-    );
-  }
-
-  if (type === "integer" || type === "number") {
-    return resolved.format === "int64" ? 1234567890 : 0;
-  }
-
-  if (type === "boolean") {
-    return true;
-  }
-
-  const format = resolved.format as string | undefined;
-
-  if (format === "date-time") {
-    return "2026-01-01T00:00:00Z";
-  }
-
-  if (format === "date") {
-    return "2026-01-01";
-  }
-
-  if (format === "email") {
-    return "user@example.com";
-  }
-
-  if (format === "uuid") {
-    return "3fa85f64-5717-4562-b3fc-2c963f66afa6";
-  }
-
-  return "string";
-}
-
-function stringifyExample(value: unknown): string {
-  if (typeof value === "string") {
-    return value;
-  }
-
-  try {
-    return JSON.stringify(value, null, 2);
-  } catch {
-    return String(value);
-  }
-}
 
 function getParameterSchema(
   parameter: OpenApiParameter,
@@ -660,14 +312,22 @@ const CopyButton = memo(function CopyButton({
   variant,
 }: CopyButtonProps) {
   const [copied, setCopied] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const mounted = useRef(false);
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; clearTimeout(timer.current); };
+  }, []);
 
   const handleClick = useCallback(async () => {
     const ok = await copyToClipboard(text);
 
-    if (ok) {
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1600);
-    }
+    if (!mounted.current) return;
+    clearTimeout(timer.current);
+    setCopied(ok);
+    setFailed(!ok);
+    timer.current = setTimeout(() => { setCopied(false); setFailed(false); }, 1600);
   }, [text]);
 
   return (
@@ -682,10 +342,12 @@ const CopyButton = memo(function CopyButton({
         copied && "is-copied",
       )}
       onClick={handleClick}
-      title={copied ? "Copied" : "Copy code"}
-      aria-label={copied ? "Copied" : "Copy code"}
+      disabled={!text}
+      title={copied ? "Copied" : failed ? "Copy failed. Try again." : "Copy code"}
+      aria-label={copied ? "Copied" : failed ? "Copy failed. Try again." : "Copy code"}
     >
       <FiCopy size={14} />
+      <span className="pde-oas-sr-only" role="status">{copied ? "Copied to clipboard" : failed ? "Could not copy to clipboard" : ""}</span>
     </button>
   );
 });
@@ -702,18 +364,19 @@ const FieldName = memo(function FieldName({ name }: FieldNameProps) {
   const [status, setStatus] = useState<"idle" | "copied" | "error">("idle");
 
   const timerRef = useRef<number | null>(null);
+  const mounted = useRef(false);
 
-  useEffect(
-    () => () => {
-      if (timerRef.current !== null) {
-        window.clearTimeout(timerRef.current);
-      }
-    },
-    [],
-  );
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      if (timerRef.current !== null) window.clearTimeout(timerRef.current);
+    };
+  }, []);
 
   const handleClick = useCallback(async () => {
     const ok = await copyToClipboard(name);
+    if (!mounted.current) return;
 
     if (timerRef.current !== null) {
       window.clearTimeout(timerRef.current);
@@ -894,12 +557,14 @@ type CompositeSchemaTabsProps = {
   alternatives: CompositeAlternative[];
   document: OasRootDocument;
   kind: "oneOf" | "anyOf";
+  depth?: number;
 };
 
 function CompositeSchemaTabs({
   alternatives,
   document,
   kind,
+  depth = 0,
 }: CompositeSchemaTabsProps) {
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -924,6 +589,7 @@ function CompositeSchemaTabs({
                   ? "pde-oas-composite-tab pde-oas-composite-tab-active"
                   : "pde-oas-composite-tab"
               }
+              aria-pressed={index === safeIndex}
               onClick={() => setActiveIndex(index)}
             >
               {alt.label}
@@ -933,7 +599,7 @@ function CompositeSchemaTabs({
       </div>
       <div className="pde-oas-composite-tabs-content">
         {active ? (
-          <SchemaBlock schema={active.schema} document={document} />
+          <SchemaBlock schema={active.schema} document={document} depth={depth + 1} />
         ) : null}
       </div>
     </div>
@@ -950,17 +616,17 @@ type SchemaFieldRowProps = {
  * `[0, 100] nullable`, `enum: [a, b, c] read-only`, `pattern: ^[a-z]+$`.
  * Returns an empty string when the schema has no constraints to show.
  */
-function getSchemaConstraintLabel(
-  schema: OpenApiSchema | undefined,
-): string {
+function getSchemaConstraintLabel(schema: OpenApiSchema | undefined): string {
   if (!schema) return "";
 
   const record = schema as Record<string, unknown>;
   const parts: string[] = [];
 
   // Numeric range — OAS 3.0 uses booleans for exclusive, 3.1 uses numbers.
-  const minimum = typeof record.minimum === "number" ? record.minimum : undefined;
-  const maximum = typeof record.maximum === "number" ? record.maximum : undefined;
+  const minimum =
+    typeof record.minimum === "number" ? record.minimum : undefined;
+  const maximum =
+    typeof record.maximum === "number" ? record.maximum : undefined;
   const exclMin = record.exclusiveMinimum;
   const exclMax = record.exclusiveMaximum;
   const hasNumeric =
@@ -1006,15 +672,19 @@ function getSchemaConstraintLabel(
   }
 
   // String length
-  const minLen = typeof record.minLength === "number" ? record.minLength : undefined;
-  const maxLen = typeof record.maxLength === "number" ? record.maxLength : undefined;
+  const minLen =
+    typeof record.minLength === "number" ? record.minLength : undefined;
+  const maxLen =
+    typeof record.maxLength === "number" ? record.maxLength : undefined;
   if (minLen !== undefined || maxLen !== undefined) {
     parts.push(`[${minLen ?? ""}, ${maxLen ?? ""}]`);
   }
 
   // Array items
-  const minItems = typeof record.minItems === "number" ? record.minItems : undefined;
-  const maxItems = typeof record.maxItems === "number" ? record.maxItems : undefined;
+  const minItems =
+    typeof record.minItems === "number" ? record.minItems : undefined;
+  const maxItems =
+    typeof record.maxItems === "number" ? record.maxItems : undefined;
   if (minItems !== undefined || maxItems !== undefined) {
     let range = `[${minItems ?? ""}, ${maxItems ?? ""}]`;
     if (record.uniqueItems === true) range += " unique";
@@ -1087,9 +757,7 @@ function SchemaFieldRow({ field, document }: SchemaFieldRowProps) {
     <div className="pde-oas-field-row">
       <div className="pde-oas-field-row-head">
         <FieldName name={field.name} />
-        <span className="pde-oas-field-type">
-          {getSchemaTypeLabel(schema)}
-        </span>
+        <span className="pde-oas-field-type">{getSchemaTypeLabel(schema)}</span>
         {constraints ? (
           <span className="pde-oas-field-constraints">{constraints}</span>
         ) : null}
@@ -1102,7 +770,9 @@ function SchemaFieldRow({ field, document }: SchemaFieldRowProps) {
         <Markdown className="pde-oas-field-description">{description}</Markdown>
       ) : null}
 
-      {compositeAlternatives.length > 0 && compositeKind && compositeKind !== "allOf" ? (
+      {compositeAlternatives.length > 0 &&
+      compositeKind &&
+      compositeKind !== "allOf" ? (
         <CompositeSchemaTabs
           alternatives={compositeAlternatives}
           document={document}
@@ -1194,9 +864,10 @@ function ParameterRow({ parameter, document }: ParameterRowProps) {
 type SchemaBlockProps = {
   schema: OpenApiSchema;
   document: OasRootDocument;
+  depth?: number;
 };
 
-function SchemaBlock({ schema, document }: SchemaBlockProps) {
+function SchemaBlock({ schema, document, depth = 0 }: SchemaBlockProps) {
   const resolved = useMemo(
     () => resolveSchemaRef(schema, document),
     [schema, document],
@@ -1216,6 +887,8 @@ function SchemaBlock({ schema, document }: SchemaBlockProps) {
     [resolved, document, compositeKind],
   );
 
+  if (depth >= 12) return <p className="pde-oas-empty-section-text">Schema nesting limit reached.</p>;
+
   if (!resolved) {
     return (
       <p className="pde-oas-empty-section-text">
@@ -1224,12 +897,17 @@ function SchemaBlock({ schema, document }: SchemaBlockProps) {
     );
   }
 
-  if (compositeKind && compositeKind !== "allOf" && compositeAlternatives.length > 0) {
+  if (
+    compositeKind &&
+    compositeKind !== "allOf" &&
+    compositeAlternatives.length > 0
+  ) {
     return (
       <CompositeSchemaTabs
         alternatives={compositeAlternatives}
         document={document}
         kind={compositeKind}
+        depth={depth}
       />
     );
   }
@@ -1247,11 +925,7 @@ function SchemaBlock({ schema, document }: SchemaBlockProps) {
   return (
     <div className="pde-oas-field-list">
       {fields.map((field) => (
-        <SchemaFieldRow
-          key={field.path}
-          field={field}
-          document={document}
-        />
+        <SchemaFieldRow key={field.path} field={field} document={document} />
       ))}
     </div>
   );
@@ -1281,9 +955,7 @@ function RequestBodySection({ operation, document }: RequestBodySectionProps) {
   const rawSchema = getProperty(mediaType, "schema");
 
   const schema =
-    rawSchema !== undefined
-      ? resolveSchemaRef(rawSchema, document)
-      : undefined;
+    rawSchema !== undefined ? resolveSchemaRef(rawSchema, document) : undefined;
 
   return (
     <section className="pde-oas-section">
@@ -1408,7 +1080,9 @@ function ResponsesSection({ operation, document }: ResponsesSectionProps) {
                 </div>
               ) : (
                 <div className="pde-oas-panel-card-body">
-                  <p className="pde-oas-empty-section-text">No response body.</p>
+                  <p className="pde-oas-empty-section-text">
+                    No response body.
+                  </p>
                 </div>
               )}
             </div>
@@ -1445,45 +1119,20 @@ function CodeExamplesPanel({
     [languageGroups],
   );
 
-  // Prefer shell/curl (generates curl commands); fall back to first available.
-  const defaultLanguage = languages.includes("shell")
-    ? "shell"
-    : languages[0] ?? "shell";
-  const defaultClients = languageGroups.get(defaultLanguage) ?? [];
-  const defaultClient = defaultClients.includes("curl")
-    ? "curl"
-    : defaultClients[0] ?? "";
-
-  const [language, setLanguage] = useState(defaultLanguage);
-  const [client, setClient] = useState(defaultClient);
-
-  // Reset when the language groups change (e.g. new document loaded).
-  useEffect(() => {
-    const lang = languages.includes("shell") ? "shell" : languages[0] ?? "shell";
-    const clients = languageGroups.get(lang) ?? [];
-    setLanguage(lang);
-    setClient(clients.includes("curl") ? "curl" : clients[0] ?? "");
-  }, [languageGroups, languages]);
-
+  const { selection, setSelection } = useCodePreferences();
+  const language = languageGroups.has(selection.language) ? selection.language : (languages[0] ?? "shell");
   const availableClients = languageGroups.get(language) ?? [];
+  const client = availableClients.includes(selection.client) ? selection.client : (availableClients[0] ?? "");
 
-  const languageCollection = useMemo(
-    () => createListCollection({ items: languages }),
-    [languages],
-  );
-
-  const clientCollection = useMemo(
-    () => createListCollection({ items: availableClients }),
-    [availableClients],
-  );
+  const languageOptions = useMemo(() => languages.map((value) => ({ value, label: languageLabel(value), icon: <LanguageIcon language={value} /> })), [languages]);
+  const clientOptions = useMemo(() => availableClients.map((value) => ({ value, label: clientLabel(value) })), [availableClients]);
 
   const handleLanguageChange = useCallback(
     (nextLanguage: string) => {
-      setLanguage(nextLanguage);
       const clients = languageGroups.get(nextLanguage) ?? [];
-      setClient(clients[0] ?? "");
+      setSelection({ language: nextLanguage, client: clients[0] ?? "" });
     },
-    [languageGroups],
+    [languageGroups, setSelection],
   );
 
   const responseEntries = useMemo(
@@ -1534,7 +1183,17 @@ function CodeExamplesPanel({
 
     const mediaEntry = getPrimaryMediaType(response.content);
 
-    const rawSchema = getProperty(mediaEntry?.[1], "schema");
+    const media = mediaEntry?.[1];
+    const explicit = getProperty(media, "example");
+    if (explicit !== undefined) return stringifyExample(explicit);
+    const examples = getObjectProperty(media, "examples");
+    if (examples) {
+      for (const entry of Object.values(examples)) {
+        const value = getProperty(entry, "value");
+        if (value !== undefined) return stringifyExample(value);
+      }
+    }
+    const rawSchema = getProperty(media, "schema");
 
     if (rawSchema === undefined) {
       return null;
@@ -1549,51 +1208,10 @@ function CodeExamplesPanel({
       <div className="pde-oas-request-card">
         <div className="pde-oas-request-card-header">
           <div className="pde-oas-language-selectors">
-            <Select.Root
-              size="xs"
-              collection={languageCollection}
-              value={language ? [language] : []}
-              onValueChange={(e) => handleLanguageChange(e.value[0] ?? "")}
-            >
-              <Select.Trigger aria-label="Code language">
-                <Select.ValueText />
-              </Select.Trigger>
-              <Select.Positioner>
-                <Select.Content>
-                  <Select.List>
-                    {languages.map((lang) => (
-                      <Select.Item key={lang} item={lang}>
-                        <Select.ItemText>{lang}</Select.ItemText>
-                        <Select.ItemIndicator />
-                      </Select.Item>
-                    ))}
-                  </Select.List>
-                </Select.Content>
-              </Select.Positioner>
-            </Select.Root>
-
-            <Select.Root
-              size="xs"
-              collection={clientCollection}
-              value={client ? [client] : []}
-              onValueChange={(e) => setClient(e.value[0] ?? "")}
-            >
-              <Select.Trigger aria-label="HTTP client">
-                <Select.ValueText />
-              </Select.Trigger>
-              <Select.Positioner>
-                <Select.Content>
-                  <Select.List>
-                    {availableClients.map((c) => (
-                      <Select.Item key={c} item={c}>
-                        <Select.ItemText>{c}</Select.ItemText>
-                        <Select.ItemIndicator />
-                      </Select.Item>
-                    ))}
-                  </Select.List>
-                </Select.Content>
-              </Select.Positioner>
-            </Select.Root>
+            <ReferenceSelect label="Code language" variant="language" theme={theme}
+              value={language} options={languageOptions} onChange={handleLanguageChange} />
+            <ReferenceSelect label="HTTP client" theme={theme}
+              value={client} options={clientOptions} onChange={(next) => setSelection({ language, client: next })} />
           </div>
 
           <div className="pde-oas-request-card-actions">
@@ -1613,18 +1231,13 @@ function CodeExamplesPanel({
         </div>
 
         <div className="pde-oas-code-block-request">
-          <ScrollArea.Root variant="hover" maxH="320px">
-            <ScrollArea.Viewport>
+          <div className="pde-oas-code-scroll" role="region" aria-label="Code sample" tabIndex={0}>
               <HighlightedCode
                 code={requestCode}
                 language={mapLanguageToShikiLang(language)}
                 theme={theme}
               />
-            </ScrollArea.Viewport>
-            <ScrollArea.Scrollbar orientation="vertical">
-              <ScrollArea.Thumb />
-            </ScrollArea.Scrollbar>
-          </ScrollArea.Root>
+            </div>
         </div>
       </div>
 
@@ -1643,6 +1256,7 @@ function CodeExamplesPanel({
                   status === activeStatus &&
                     "pde-oas-response-status-tab-active",
                 )}
+                aria-pressed={status === activeStatus}
                 onClick={() => setActiveStatus(status)}
               >
                 <span
@@ -1657,20 +1271,15 @@ function CodeExamplesPanel({
           </span>
         </div>
 
-        {responseBody ? (
+        {responseBody !== null ? (
           <div className="pde-oas-code-block-response">
-            <ScrollArea.Root variant="hover" maxH="280px">
-              <ScrollArea.Viewport>
+            <div className="pde-oas-code-scroll" role="region" aria-label="Code sample" tabIndex={0}>
                 <HighlightedCode
                   code={responseBody}
                   language="json"
                   theme={theme}
                 />
-              </ScrollArea.Viewport>
-              <ScrollArea.Scrollbar orientation="vertical">
-                <ScrollArea.Thumb />
-              </ScrollArea.Scrollbar>
-            </ScrollArea.Root>
+              </div>
             <CopyButton text={responseBody} variant={theme} />
           </div>
         ) : (
@@ -1696,6 +1305,7 @@ type OperationSectionProps = {
   languageGroups: Map<string, string[]>;
   theme: "light" | "dark";
   showCodeColumn: boolean;
+  instanceId: string;
 };
 
 const OperationSection = memo(function OperationSection({
@@ -1705,10 +1315,11 @@ const OperationSection = memo(function OperationSection({
   languageGroups,
   theme,
   showCodeColumn,
+  instanceId,
 }: OperationSectionProps) {
   return (
     <section
-      id={`operation-${operation.id}`}
+      id={`${instanceId}-operation-${operation.id}`}
       data-op-section={operation.id}
       className="pde-oas-operation-section"
     >
@@ -1773,6 +1384,7 @@ const OperationSection = memo(function OperationSection({
       {showCodeColumn ? (
         <div className="pde-oas-code-column">
           <div className="pde-oas-code-sticky">
+            <DeferredContent>
             <CodeExamplesPanel
               operation={operation}
               serverUrl={serverUrl}
@@ -1780,6 +1392,7 @@ const OperationSection = memo(function OperationSection({
               languageGroups={languageGroups}
               theme={theme}
             />
+            </DeferredContent>
           </div>
         </div>
       ) : null}
@@ -1792,57 +1405,30 @@ const OperationSection = memo(function OperationSection({
    ========================================================================== */
 
 type ServerSelectorProps = {
+  theme: "light" | "dark";
   document: OasRootDocument;
   serverUrl: string;
   onChange: (value: string) => void;
 };
 
 const ServerSelector = memo(function ServerSelector({
+  theme,
   document,
   serverUrl,
   onChange,
 }: ServerSelectorProps) {
-  const servers = document.servers ?? [];
-
-  if (servers.length === 0) {
-    return null;
-  }
-
-  const serverUrls = servers.map((server) =>
-    resolveServerUrl(server.url, server.variables),
-  );
-
-  const serverCollection = createListCollection({
-    items: serverUrls,
-  });
+  const serverOptions = useMemo(() => {
+    const urls = new Set((document.servers ?? []).map((server) => resolveServerUrl(server.url, server.variables)));
+    return Array.from(urls, (value) => ({ value, label: value }));
+  }, [document.servers]);
+  if (!serverOptions.length) return null;
 
   return (
     <div className="pde-oas-server-selector">
       <span className="pde-oas-server-selector-label">Server</span>
 
-      <Select.Root
-        size="xs"
-        collection={serverCollection}
-        value={serverUrl ? [serverUrl] : []}
-        onValueChange={(e) => onChange(e.value[0] ?? "")}
-        className="pde-oas-server-select"
-      >
-        <Select.Trigger aria-label="Server URL">
-          <Select.ValueText placeholder="Select server" />
-        </Select.Trigger>
-        <Select.Positioner>
-          <Select.Content>
-            <Select.List>
-              {serverUrls.map((url) => (
-                <Select.Item key={url} item={url}>
-                  <Select.ItemText>{url}</Select.ItemText>
-                  <Select.ItemIndicator />
-                </Select.Item>
-              ))}
-            </Select.List>
-          </Select.Content>
-        </Select.Positioner>
-      </Select.Root>
+      <ReferenceSelect label="Server URL" variant="server" theme={theme}
+        value={serverUrl} options={serverOptions} onChange={onChange} />
     </div>
   );
 });
@@ -1875,7 +1461,7 @@ function Header({
       return (
         <a
           key={index}
-          href={item.href}
+          href={safeNavigationHref(item.href)}
           className="pde-oas-nav-item"
           target="_blank"
           rel="noreferrer"
@@ -1928,7 +1514,9 @@ function Header({
         {showThemeToggle ? (
           <button
             type="button"
-            aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            aria-label={
+              theme === "dark" ? "Switch to light mode" : "Switch to dark mode"
+            }
             className="pde-oas-theme-toggle"
             onClick={onToggleTheme}
           >
@@ -1955,27 +1543,24 @@ function OasDocumentImpl(
     theme: initialTheme = "light",
     header,
     showTree = true,
-    treeWidth = 320,
+    treeWidth,
   }: OasDocumentProps,
   ref: ForwardedRef<OasDocumentHandle>,
 ) {
+  const instanceId = useId();
   const rootRef = useRef<HTMLDivElement | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
   const treeRootRef = useRef<HTMLDivElement | null>(null);
   const treeRef = useRef<TreeHandle | null>(null);
-  const codePanelRef = useRef<HTMLDivElement | null>(null);
+  const selectedIdRef = useRef<string | undefined>(undefined);
+  const releaseScrollTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => () => clearTimeout(releaseScrollTimer.current), []);
 
   /** When true, scroll-spy must not fire (programmatic tree selection). */
   const suppressScrollSpyRef = useRef(false);
 
-  const isTablet = useMediaQuery(
-    `(max-width: ${TABLET_BREAKPOINT}px)`,
-    false,
-  );
-  const isMobile = useMediaQuery(
-    `(max-width: ${MOBILE_BREAKPOINT}px)`,
-    false,
-  );
+  const isTablet = useMediaQuery(`(max-width: ${TABLET_BREAKPOINT}px)`, false);
+  const isMobile = useMediaQuery(`(max-width: ${MOBILE_BREAKPOINT}px)`, false);
 
   const [isNavOpen, setNavOpen] = useState(false);
   const [isCodeOpen, setCodeOpen] = useState(false);
@@ -1983,26 +1568,17 @@ function OasDocumentImpl(
   /* ---- Sidebar width: localStorage persistence ------------------------- */
   const STORAGE_KEY = "pde-oas-sidebar-width";
 
-  const [resolvedTreeWidth, setResolvedTreeWidth] = useState(() => {
-    if (treeWidth !== undefined) return treeWidth;
-    if (typeof window === "undefined") return 340;
-    try {
-      const stored = window.localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = Number.parseInt(stored, 10);
-        if (parsed >= 200 && parsed <= 480) return parsed;
-      }
-    } catch {
-      /* localStorage unavailable */
-    }
-    return 340;
-  });
+  const [resolvedTreeWidth, setResolvedTreeWidth] = useState(() =>
+    treeWidth !== undefined && Number.isFinite(treeWidth)
+      ? Math.min(480, Math.max(200, treeWidth))
+      : 280,
+  );
 
   const handleSplitterSizeChange = useCallback(
     (details: { size: number[] }) => {
       const first = details.size[0];
       if (first === undefined) return;
-      const px = first;
+      const px = (first / 100) * (rootRef.current?.clientWidth ?? 0);
       if (Number.isFinite(px) && px >= 200 && px <= 480) {
         setResolvedTreeWidth(px);
         try {
@@ -2030,6 +1606,25 @@ function OasDocumentImpl(
     defaultOperationId,
     initialTheme,
   });
+
+  selectedIdRef.current = selectedOperation?.id;
+  const resolveNode = useMemo(() => createOperationResolver(operations), [operations]);
+  useEffect(() => {
+    if (treeWidth !== undefined && Number.isFinite(treeWidth)) {
+      setResolvedTreeWidth(Math.min(480, Math.max(200, treeWidth)));
+      return;
+    }
+    try {
+      const stored = Number(window.localStorage.getItem(STORAGE_KEY));
+      setResolvedTreeWidth(stored >= 200 && stored <= 480 ? stored : 280);
+    } catch { setResolvedTreeWidth(280); }
+  }, [treeWidth]);
+
+  const scrollToSection = useCallback((id: string) => {
+    const section = Array.from(contentRef.current?.querySelectorAll<HTMLElement>("[data-op-section]") ?? [])
+      .find((element) => element.dataset.opSection === id);
+    section?.scrollIntoView?.({ behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+  }, []);
 
   /* ---- Generator options grouped by language (stable) ------------------- */
   const languageGroups = useMemo(() => getLanguageGroups(), []);
@@ -2084,10 +1679,10 @@ function OasDocumentImpl(
         setNavOpen(false);
       }
 
-      // Release the suppression flag on the next frame.
-      window.requestAnimationFrame(() => {
+      clearTimeout(releaseScrollTimer.current);
+      releaseScrollTimer.current = setTimeout(() => {
         suppressScrollSpyRef.current = false;
-      });
+      }, 700);
     },
     [isTablet, onOperationChange, setSelectedOperation],
   );
@@ -2100,115 +1695,70 @@ function OasDocumentImpl(
         return;
       }
 
-      const operation = resolveOperationFromNode(operations, node);
+      const operation = resolveNode(node);
 
       if (operation) {
         handleOperationChange(operation);
 
-        // Scroll the corresponding content section into view.
-        const contentEl = window.document.getElementById(
-          `operation-${operation.id}`,
-        );
-
-        contentEl?.scrollIntoView({ behavior: "smooth", block: "start" });
+        scrollToSection(operation.id);
       }
     },
-    [operations, handleOperationChange],
+    [resolveNode, handleOperationChange, scrollToSection],
   );
 
-  /* ---- Scroll-spy: IntersectionObserver on operation sections ------------ */
+  /* ---- Scroll-spy: one passive listener and logarithmic section lookup ---- */
   useEffect(() => {
     const container = contentRef.current;
-
-    if (!container || operations.length === 0) {
-      return;
-    }
-
-    const sections = Array.from(
-      container.querySelectorAll<HTMLElement>("[data-op-section]"),
-    );
-
-    if (sections.length === 0) {
-      return;
-    }
-
-    let ticking = false;
+    if (!container || loading || operations.length === 0) return;
+    const sections = Array.from(container.querySelectorAll<HTMLElement>("[data-op-section]"));
+    if (!sections.length) return;
     let rafId = 0;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (ticking) {
-          return;
-        }
-
-        ticking = true;
-        rafId = window.requestAnimationFrame(() => {
-          ticking = false;
-
-          if (suppressScrollSpyRef.current) {
-            return;
-          }
-
-          // With rootMargin "-45% 0px -50% 0px" and threshold 0, each entry
-          // represents a section crossing the thin ~5% trigger band at ~45%
-          // from the viewport top. Only one section should be intersecting
-          // at a time; pick the entry whose target is currently intersecting.
-          const active = entries.find((e) => e.isIntersecting);
-
-          if (!active) {
-            return;
-          }
-
-          const target = active.target as HTMLElement;
-          const operationId = target.dataset.opSection;
-
-          if (!operationId) {
-            return;
-          }
-
-          // Only update if the active operation actually changed.
-          if (selectedOperation?.id === operationId) {
-            return;
-          }
-
-          const treeNodeId = operationTreeIndex.get(operationId);
-
-          if (treeNodeId) {
-            treeRef.current?.locateNode(
-              (node: TreeNode) => node.id === treeNodeId,
-            );
-          }
-
-          const op = operations.find((o) => o.id === operationId);
-
-          if (op) {
-            setSelectedOperation(operationId);
-          }
-        });
-      },
-      {
-        root: container,
-        rootMargin: "-45% 0px -50% 0px",
-        threshold: 0,
-      },
-    );
-
-    for (const section of sections) {
-      observer.observe(section);
-    }
-
+    const update = () => {
+      rafId = 0;
+      if (suppressScrollSpyRef.current) return;
+      // Include the reading pane's padding and the section's scroll margin.
+      const readingEdge = container.getBoundingClientRect().top + 64;
+      let low = 0;
+      let high = sections.length - 1;
+      let activeIndex = 0;
+      while (low <= high) {
+        const middle = (low + high) >>> 1;
+        if (sections[middle].getBoundingClientRect().top <= readingEdge) {
+          activeIndex = middle;
+          low = middle + 1;
+        } else high = middle - 1;
+      }
+      const operationId = sections[activeIndex].dataset.opSection;
+      if (!operationId || selectedIdRef.current === operationId) return;
+      selectedIdRef.current = operationId;
+      setSelectedOperation(operationId);
+      const nodeId = operationTreeIndex.get(operationId);
+      if (nodeId) treeRef.current?.locateNode((node: TreeNode) => node.id === nodeId);
+    };
+    const schedule = () => { if (!rafId) rafId = window.requestAnimationFrame(update); };
+    const onScrollEnd = () => {
+      clearTimeout(releaseScrollTimer.current);
+      suppressScrollSpyRef.current = false;
+      schedule();
+    };
+    container.addEventListener("scroll", schedule, { passive: true });
+    container.addEventListener("scrollend", onScrollEnd);
+    const resizeObserver = typeof ResizeObserver !== "undefined" ? new ResizeObserver(schedule) : null;
+    resizeObserver?.observe(container);
     return () => {
-      observer.disconnect();
+      container.removeEventListener("scroll", schedule);
+      container.removeEventListener("scrollend", onScrollEnd);
+      resizeObserver?.disconnect();
       window.cancelAnimationFrame(rafId);
     };
-  }, [operations, operationTreeIndex, setSelectedOperation, selectedOperation?.id]);
+  }, [operations, operationTreeIndex, setSelectedOperation, loading, isTablet, showTree]);
 
   /* ---- Imperative handle ------------------------------------------------ */
   useImperativeHandle(
     ref,
     (): OasDocumentHandle => ({
       getRootElement: () => rootRef.current,
-      getOperations: () => operations,
+      getOperations: () => orderedOperations,
       getSelectedOperation: () => selectedOperation,
       selectOperation: (operationId: string) => {
         const target = operations.find(
@@ -2223,11 +1773,7 @@ function OasDocumentImpl(
 
         handleOperationChange(target);
 
-        const contentEl = window.document.getElementById(
-          `operation-${target.id}`,
-        );
-
-        contentEl?.scrollIntoView({ behavior: "smooth", block: "start" });
+        scrollToSection(target.id);
 
         return true;
       },
@@ -2235,11 +1781,8 @@ function OasDocumentImpl(
         const targetId = operationId ?? selectedOperation?.id;
 
         if (targetId) {
-          const contentEl = window.document.getElementById(
-            `operation-${targetId}`,
-          );
-
-          contentEl?.scrollIntoView({ behavior: "smooth", block: "start" });
+          const operation = operations.find((item) => item.id === targetId || item.operationId === targetId);
+          if (operation) scrollToSection(operation.id);
         } else {
           contentRef.current?.scrollTo({ top: 0, behavior: "smooth" });
         }
@@ -2252,7 +1795,7 @@ function OasDocumentImpl(
         search?.focus();
       },
     }),
-    [operations, selectedOperation, handleOperationChange],
+    [operations, orderedOperations, selectedOperation, handleOperationChange, scrollToSection],
   );
 
   /* ---- Theme toggle (hook must be before any early return) -------------- */
@@ -2326,7 +1869,7 @@ function OasDocumentImpl(
 
   /* ---- Sidebar ---------------------------------------------------------- */
   const sidebar = (
-    <aside className="pde-oas-sidebar">
+    <aside className="pde-oas-sidebar" aria-label="API navigation">
       <div className="pde-oas-sidebar-header">
         <span className="pde-oas-sidebar-eyebrow">API Reference</span>
         {version ? (
@@ -2350,6 +1893,7 @@ function OasDocumentImpl(
 
       <div className="pde-oas-sidebar-footer">
         <ServerSelector
+          theme={theme}
           document={document}
           serverUrl={selectedServerUrl}
           onChange={setSelectedServerUrl}
@@ -2360,8 +1904,9 @@ function OasDocumentImpl(
 
   /* ---- Content ---------------------------------------------------------- */
   const content = (
-    <div className="pde-oas-content" ref={contentRef}>
+    <div className="pde-oas-content" ref={contentRef} role="region" aria-label="API reference" tabIndex={0}>
       <div className="pde-oas-document-intro">
+        <div className="pde-oas-intro-eyebrow">API REFERENCE <span>{operations.length} endpoints</span></div>
         <h1 className="pde-oas-document-title">
           {document.info?.title || "API Documentation"}
         </h1>
@@ -2382,6 +1927,7 @@ function OasDocumentImpl(
           languageGroups={languageGroups}
           theme={theme}
           showCodeColumn={showCodeColumn}
+          instanceId={instanceId}
         />
       ))}
     </div>
@@ -2390,71 +1936,32 @@ function OasDocumentImpl(
   /* ---- Desktop layout --------------------------------------------------- */
 
   return (
-      <div
-        ref={rootRef}
-        className={rootClassName}
-        style={{
-          ...style,
-          ["--sidebar-width" as string]: `${resolvedTreeWidth}px`,
-        }}
-        data-theme={theme}
-      >
+    <div
+      ref={rootRef}
+      className={rootClassName}
+      style={{
+        ...style,
+        ["--sidebar-width" as string]: `${resolvedTreeWidth}px`,
+      }}
+      data-theme={theme}
+    >
       <Header
         config={header}
         theme={theme}
         onToggleTheme={handleToggleTheme}
         onOpenNav={() => setNavOpen(true)}
-        showNavButton={isTablet}
+        showNavButton={isTablet && showTree}
       />
 
-      {/* Tablet: nav overlay */}
-      {isTablet && showTree ? (
-        <>
-          <div
-            className={cn(
-              "pde-oas-overlay-backdrop",
-              isNavOpen && "pde-oas-overlay-backdrop-visible",
-            )}
-            onClick={() => setNavOpen(false)}
-            aria-hidden="true"
-          />
-          <div
-            className={cn(
-              "pde-oas-nav-overlay-panel",
-              isNavOpen && "pde-oas-overlay-panel-open",
-            )}
-          >
-            {sidebar}
-          </div>
-
-          <div
-            className={cn(
-              "pde-oas-overlay-backdrop",
-              isCodeOpen && "pde-oas-overlay-backdrop-visible",
-            )}
-            onClick={() => setCodeOpen(false)}
-            aria-hidden="true"
-          />
-          <div
-            ref={codePanelRef}
-            className={cn(
-              "pde-oas-code-overlay-panel",
-              isCodeOpen && "pde-oas-overlay-panel-open",
-            )}
-          >
-            {selectedOperation ? (
-              <CodeExamplesPanel
-                operation={selectedOperation}
-                serverUrl={selectedServerUrl}
-                document={document}
-                languageGroups={languageGroups}
-                theme={theme}
-                onRequestClose={() => setCodeOpen(false)}
-              />
-            ) : null}
-          </div>
-        </>
-      ) : null}
+      {isTablet ? <>
+        {showTree ? <Drawer open={isNavOpen} onClose={() => setNavOpen(false)} label="Navigation" side="left">{sidebar}</Drawer> : null}
+        <Drawer open={isCodeOpen} onClose={() => setCodeOpen(false)} label="Code examples" side="right">
+          {selectedOperation ? <CodeExamplesPanel
+            operation={selectedOperation} serverUrl={selectedServerUrl}
+            document={document} languageGroups={languageGroups} theme={theme}
+          /> : null}
+        </Drawer>
+      </> : null}
 
       {/* Main workspace */}
       {showTree && !isTablet ? (
@@ -2468,7 +1975,10 @@ function OasDocumentImpl(
           ]}
           className="pde-oas-splitter"
         >
-          <Splitter.Panel id="pde-oas-sidebar" className="pde-oas-splitter-sidebar">
+          <Splitter.Panel
+            id="pde-oas-sidebar"
+            className="pde-oas-splitter-sidebar"
+          >
             {sidebar}
           </Splitter.Panel>
 
@@ -2479,10 +1989,11 @@ function OasDocumentImpl(
             <Splitter.ResizeTriggerSeparator className="pde-oas-splitter-separator" />
           </Splitter.ResizeTrigger>
 
-          <Splitter.Panel id="pde-oas-content" className="pde-oas-splitter-content">
-            <div className="pde-oas-main-region">
-              {content}
-            </div>
+          <Splitter.Panel
+            id="pde-oas-content"
+            className="pde-oas-splitter-content"
+          >
+            <div className="pde-oas-main-region">{content}</div>
           </Splitter.Panel>
         </Splitter.Root>
       ) : (
@@ -2506,7 +2017,7 @@ function OasDocumentImpl(
           </div>
         </div>
       )}
-      </div>
+    </div>
   );
 }
 
@@ -2516,7 +2027,9 @@ const OasDocument = forwardRef<OasDocumentHandle, OasDocumentProps>(
   function OasDocument(props, ref) {
     return (
       <OptionalChakraProvider>
-        <OasDocumentInner ref={ref} {...props} />
+        <CodePreferencesProvider>
+          <OasDocumentInner ref={ref} {...props} />
+        </CodePreferencesProvider>
       </OptionalChakraProvider>
     );
   },

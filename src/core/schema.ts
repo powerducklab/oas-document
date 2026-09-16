@@ -102,7 +102,8 @@ function schemaRecord(
 /**
  * Returns a human-readable schema type.
  */
-export function getSchemaTypeLabel(schema: OpenApiSchema | undefined): string {
+export function getSchemaTypeLabel(schema: OpenApiSchema | undefined, depth = 0): string {
+  if (depth >= 32) return "unknown";
   const record = schemaRecord(schema);
 
   if (!record) {
@@ -115,7 +116,7 @@ export function getSchemaTypeLabel(schema: OpenApiSchema | undefined): string {
     if (type === "array") {
       const items = resolveSchema(record.items);
 
-      return items ? `${getSchemaTypeLabel(items)}[]` : "array";
+      return items ? `${getSchemaTypeLabel(items, depth + 1)}[]` : "array";
     }
 
     const format =

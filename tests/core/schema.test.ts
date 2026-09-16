@@ -479,3 +479,9 @@ describe("stringifyDisplayValue", () => {
     expect(stringifyDisplayValue(null)).toBe("null");
   });
 });
+
+it("bounds type labels for cyclic array schemas", () => {
+  const schema = { type: "array", items: {} };
+  schema.items = schema;
+  expect(() => getSchemaTypeLabel(schema as never)).not.toThrow();
+});

@@ -116,7 +116,7 @@ export function resolveJsonPointer(root: unknown, reference: string): unknown {
       return undefined;
     }
 
-    if (!(segment in current)) {
+    if (!Object.prototype.hasOwnProperty.call(current, segment)) {
       return undefined;
     }
 
@@ -248,21 +248,27 @@ function mergeReferenceObject(
  * Returns a cloned value without mutating the original document.
  */
 function cloneValue<T>(value: T): T {
-  if (!isRecord(value) && !Array.isArray(value)) {
-    return value;
+  if (!isRecord(value) && !Array.isArray(value)) return value;
+  const root: RecordLike | unknown[] = Array.isArray(value) ? [] : {};
+  const copies = new WeakMap<object, RecordLike | unknown[]>([[value, root]]);
+  const pending = [{ source: value as object, target: root }];
+  while (pending.length) {
+    const { source, target } = pending.pop()!;
+    for (const [key, item] of Object.entries(source)) {
+      let copy: unknown = item;
+      if (isRecord(item) || Array.isArray(item)) {
+        copy = copies.get(item);
+        if (!copy) {
+          const child: RecordLike | unknown[] = Array.isArray(item) ? [] : {};
+          copies.set(item, child);
+          pending.push({ source: item, target: child });
+          copy = child;
+        }
+      }
+      Object.defineProperty(target, key, { value: copy, enumerable: true, configurable: true, writable: true });
+    }
   }
-
-  if (Array.isArray(value)) {
-    return value.map((item) => cloneValue(item)) as T;
-  }
-
-  const result: RecordLike = {};
-
-  for (const [key, item] of Object.entries(value)) {
-    result[key] = cloneValue(item);
-  }
-
-  return result as T;
+  return root as T;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -364,7 +370,7 @@ function resolveValue(
   const result: RecordLike = {};
 
   for (const [key, child] of Object.entries(value)) {
-    result[key] = resolveValue(document, child, state, depth + 1);
+    Object.defineProperty(result, key, { value: resolveValue(document, child, state, depth + 1), enumerable: true, configurable: true, writable: true });
   }
 
   return result;

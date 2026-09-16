@@ -1,331 +1,4 @@
-/* ==========================================================================
-   CSS variables — light theme (defaults)
-   ========================================================================== */
-
-.pde-oas-root {
-  /* Surfaces */
-  --pde-color-canvas: #fafbfc;
-  --pde-color-surface: #ffffff;
-  --pde-color-surface-subtle: #f6f8fa;
-  --pde-color-surface-hover: #f0f2f5;
-  --pde-color-surface-selected: #eef1f4;
-
-  /* Text */
-  --pde-color-text-primary: #1a1d21;
-  --pde-color-text-secondary: #57606a;
-  --pde-color-text-tertiary: #8b949e;
-  --pde-color-text-inverse: #ffffff;
-
-  /* Brand / accent */
-  --pde-color-accent: #635bff;
-  --pde-color-accent-hover: #5851db;
-  --pde-color-accent-bg: #f0f0ff;
-  --pde-color-text-accent: #5851db;
-
-  /* Semantic */
-  --pde-color-success: #1a7f37;
-  --pde-color-danger: #cf222e;
-  --pde-color-warning: #9a6700;
-  --pde-color-info: #0969da;
-
-  /* Borders */
-  --pde-color-border-subtle: #e6e8eb;
-  --pde-color-border-default: #d1d5da;
-  --pde-color-border-strong: #afb8c1;
-
-  /* Code surfaces */
-  --pde-color-code-bg: #1e2430;
-  --pde-color-code-text: #e6edf3;
-  --pde-color-code-surface: #f6f8fa;
-  --pde-color-code-border: #e1e4e8;
-
-  /* md-editor code block tokens (light) */
-  --code-bg: #f6f8fa;
-  --code-header-bg: #eef1f4;
-  --code-fg: #24292f;
-  --code-border: #e1e4e8;
-  --code-keyword: #cf222e;
-  --code-string: #0a3069;
-  --code-number: #0550ae;
-  --code-comment: #6e7781;
-  --code-function: #8250df;
-  --code-type: #953800;
-  --code-attr: #0550ae;
-  --code-tag: #116329;
-  --code-meta: #6e7781;
-  --code-literal: #0550ae;
-  --code-addition: #116329;
-  --code-deletion: #cf222e;
-
-  /* Method badge colors */
-  --pde-method-get-bg: #e6ffec;
-  --pde-method-get-text: #1a7f37;
-  --pde-method-post-bg: #ddf4ff;
-  --pde-method-post-text: #0969da;
-  --pde-method-put-bg: #fff1e5;
-  --pde-method-put-text: #bc4c00;
-  --pde-method-patch-bg: #fbefff;
-  --pde-method-patch-text: #8250df;
-  --pde-method-delete-bg: #ffebe9;
-  --pde-method-delete-text: #cf222e;
-  --pde-method-other-bg: #f6f8fa;
-  --pde-method-other-text: #57606a;
-
-  /* Spacing & radius */
-  --pde-space-1: 4px;
-  --pde-space-2: 8px;
-  --pde-space-3: 12px;
-  --pde-space-4: 16px;
-  --pde-space-5: 20px;
-  --pde-space-6: 24px;
-  --pde-space-8: 32px;
-  --pde-space-10: 40px;
-
-  --pde-radius-sm: 4px;
-  --pde-radius-md: 6px;
-  --pde-radius-lg: 8px;
-
-  /* Typography */
-  --pde-font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter",
-    Helvetica, Arial, sans-serif;
-  --pde-font-mono: "SF Mono", "Fira Code", "JetBrains Mono", Menlo, Consolas,
-    monospace;
-
-  --pde-font-size-xs: 12px;
-  --pde-font-size-sm: 13px;
-  --pde-font-size-md: 14px;
-  --pde-font-size-lg: 15px;
-
-  /* Sizing */
-  --pde-header-height: 56px;
-  --pde-sidebar-width: 280px;
-  --pde-content-max-width: 1100px;
-
-  /* Shadow */
-  --pde-shadow-sm: 0 1px 2px rgba(28, 32, 36, 0.06);
-  --pde-shadow-md: 0 4px 12px rgba(28, 32, 36, 0.1);
-
-  /* Motion */
-  --pde-transition: 160ms ease;
-
-  /* ---- Tree component CSS variable aliases (--color-* → --pde-color-*) ---- */
-  --color-text-primary: var(--pde-color-text-primary);
-  --color-text-secondary: var(--pde-color-text-secondary);
-  --color-text-tertiary: var(--pde-color-text-tertiary);
-  --color-text-disabled: var(--pde-color-text-tertiary);
-  --color-surface: var(--pde-color-surface);
-  --color-surface-subtle: var(--pde-color-surface-subtle);
-  --color-surface-hover: var(--pde-color-surface-hover);
-  --color-surface-selected: var(--pde-color-surface-selected);
-  --color-border-subtle: var(--pde-color-border-subtle);
-  --color-border-default: var(--pde-color-border-default);
-  --color-border-strong: var(--pde-color-border-strong);
-  --color-accent: var(--pde-color-accent);
-  --color-accent-active: var(--pde-color-accent-hover);
-  --color-accent-bg: var(--pde-color-accent-bg);
-  --color-accent-bg-soft: var(--pde-color-accent-bg);
-  --color-text-accent: var(--pde-color-text-accent);
-  --color-focus-ring: var(--pde-color-accent);
-  --color-success: var(--pde-color-success);
-  --color-success-soft: var(--pde-color-surface-subtle);
-  --color-danger: var(--pde-color-danger);
-  --color-danger-soft: var(--pde-color-surface-subtle);
-  --color-warning: var(--pde-color-warning);
-  --color-warning-soft: var(--pde-color-surface-subtle);
-  --color-info: var(--pde-color-info);
-  --color-info-soft: var(--pde-color-surface-subtle);
-  --color-dynamic: var(--pde-color-accent);
-  --font-family-ui: var(--pde-font-ui);
-  --font-size-sm: var(--pde-font-size-sm);
-  --line-height-normal: 1.6;
-  --transition-fast: var(--pde-transition);
-  --radius-sm: var(--pde-radius-sm);
-  --radius-md: var(--pde-radius-md);
-  --radius-xs: 3px;
-  --radius-full: 9999px;
-  --icon-size-sm: 14px;
-  --font-weight-regular: 400;
-  --font-weight-medium: 500;
-  --font-weight-semibold: 600;
-  --shadow-lg: var(--pde-shadow-md);
-
-  /* ---- md-editor internal variables (--_*) for standalone rendered content ---- */
-  --_surface: var(--pde-color-surface);
-  --_surface-subtle: var(--pde-color-surface-subtle);
-  --_surface-hover: var(--pde-color-surface-hover);
-  --_surface-active: var(--pde-color-surface-selected);
-  --_text-primary: var(--pde-color-text-primary);
-  --_text-secondary: var(--pde-color-text-secondary);
-  --_text-tertiary: var(--pde-color-text-tertiary);
-  --_accent: var(--pde-color-accent);
-  --_accent-bg: var(--pde-color-accent-bg);
-  --_border-subtle: var(--pde-color-border-subtle);
-  --_border-default: var(--pde-color-border-default);
-  --_radius-md: var(--pde-radius-md);
-  --_radius-lg: var(--pde-radius-lg);
-  --_space-1: var(--pde-space-1);
-  --_space-2: var(--pde-space-2);
-  --_space-3: var(--pde-space-3);
-  --_transition-fast: var(--pde-transition);
-  --_font-ui: var(--pde-font-ui);
-  --_font-mono: var(--pde-font-mono);
-  --_font-size-sm: var(--pde-font-size-sm);
-  --_font-size-xs: var(--pde-font-size-xs);
-}
-
-/* ==========================================================================
-   Dark theme
-   ========================================================================== */
-
-.pde-oas-root[data-theme="dark"] {
-  --pde-color-canvas: #161b22;
-  --pde-color-surface: #1c2128;
-  --pde-color-surface-subtle: #22272e;
-  --pde-color-surface-hover: #2d333b;
-  --pde-color-surface-selected: #373e47;
-
-  --pde-color-text-primary: #e6edf3;
-  --pde-color-text-secondary: #9198a1;
-  --pde-color-text-tertiary: #6e7681;
-  --pde-color-text-inverse: #0d1117;
-
-  --pde-color-accent: #a5a0ff;
-  --pde-color-accent-hover: #b8b4ff;
-  --pde-color-accent-bg: #26234a;
-  --pde-color-text-accent: #a5a0ff;
-
-  --pde-color-success: #3fb950;
-  --pde-color-danger: #f85149;
-  --pde-color-warning: #d29922;
-  --pde-color-info: #58a6ff;
-
-  --pde-color-border-subtle: #21262d;
-  --pde-color-border-default: #30363d;
-  --pde-color-border-strong: #484f58;
-
-  --pde-color-code-bg: #0d1117;
-  --pde-color-code-text: #e6edf3;
-  --pde-color-code-surface: #161b22;
-  --pde-color-code-border: #30363d;
-
-  /* md-editor code block tokens (dark) */
-  --code-bg: #0d1117;
-  --code-header-bg: #161b22;
-  --code-fg: #c9d1d9;
-  --code-border: #3d444d;
-  --code-keyword: #ff7b72;
-  --code-string: #a5d6ff;
-  --code-number: #79c0ff;
-  --code-comment: #8b949e;
-  --code-function: #d2a8ff;
-  --code-type: #ffa657;
-  --code-attr: #79c0ff;
-  --code-tag: #7ee787;
-  --code-meta: #8b949e;
-  --code-literal: #79c0ff;
-  --code-addition: #7ee787;
-  --code-deletion: #ffa198;
-
-  /* Dark method badges — darker tint */
-  --pde-method-get-bg: #1a3a2a;
-  --pde-method-get-text: #3fb950;
-  --pde-method-post-bg: #0c2d48;
-  --pde-method-post-text: #58a6ff;
-  --pde-method-put-bg: #3d2500;
-  --pde-method-put-text: #d29922;
-  --pde-method-patch-bg: #2d1b4e;
-  --pde-method-patch-text: #bc8cff;
-  --pde-method-delete-bg: #4a1215;
-  --pde-method-delete-text: #f85149;
-  --pde-method-other-bg: #21262d;
-  --pde-method-other-text: #9198a1;
-
-  --pde-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --pde-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
-
-  /* ---- Dark theme tree aliases (resolve to dark --pde-color-* values) ---- */
-  --color-text-primary: var(--pde-color-text-primary);
-  --color-text-secondary: var(--pde-color-text-secondary);
-  --color-text-tertiary: var(--pde-color-text-tertiary);
-  --color-text-disabled: var(--pde-color-text-tertiary);
-  --color-surface: var(--pde-color-surface);
-  --color-surface-subtle: var(--pde-color-surface-subtle);
-  --color-surface-hover: var(--pde-color-surface-hover);
-  --color-surface-selected: var(--pde-color-surface-selected);
-  --color-border-subtle: var(--pde-color-border-subtle);
-  --color-border-default: var(--pde-color-border-default);
-  --color-border-strong: var(--pde-color-border-strong);
-  --color-accent: var(--pde-color-accent);
-  --color-accent-active: var(--pde-color-accent-hover);
-  --color-accent-bg: var(--pde-color-accent-bg);
-  --color-accent-bg-soft: var(--pde-color-accent-bg);
-  --color-text-accent: var(--pde-color-text-accent);
-  --color-focus-ring: var(--pde-color-accent);
-  --color-success: var(--pde-color-success);
-  --color-success-soft: var(--pde-color-surface-subtle);
-  --color-danger: var(--pde-color-danger);
-  --color-danger-soft: var(--pde-color-surface-subtle);
-  --color-warning: var(--pde-color-warning);
-  --color-warning-soft: var(--pde-color-surface-subtle);
-  --color-info: var(--pde-color-info);
-  --color-info-soft: var(--pde-color-surface-subtle);
-  --color-dynamic: var(--pde-color-accent);
-
-  /* ---- md-editor internal variables (--_*) dark ---- */
-  --_surface: var(--pde-color-surface);
-  --_surface-subtle: var(--pde-color-surface-subtle);
-  --_surface-hover: var(--pde-color-surface-hover);
-  --_surface-active: var(--pde-color-surface-selected);
-  --_text-primary: var(--pde-color-text-primary);
-  --_text-secondary: var(--pde-color-text-secondary);
-  --_text-tertiary: var(--pde-color-text-tertiary);
-  --_accent: var(--pde-color-accent);
-  --_accent-bg: var(--pde-color-accent-bg);
-  --_border-subtle: var(--pde-color-border-subtle);
-  --_border-default: var(--pde-color-border-default);
-  --_radius-md: var(--pde-radius-md);
-  --_radius-lg: var(--pde-radius-lg);
-  --_space-1: var(--pde-space-1);
-  --_space-2: var(--pde-space-2);
-  --_space-3: var(--pde-space-3);
-  --_transition-fast: var(--pde-transition);
-  --_font-ui: var(--pde-font-ui);
-  --_font-mono: var(--pde-font-mono);
-  --_font-size-sm: var(--pde-font-size-sm);
-  --_font-size-xs: var(--pde-font-size-xs);
-}
-
-/* ---- Dark mode: github-markdown-css variables (table, hr, etc.) ---------- */
-.pde-oas-root[data-theme="dark"] .markdown-body {
-  --bgColor-default: #161b22;
-  --bgColor-muted: #1c2128;
-  --fgColor-default: #e6edf3;
-  --fgColor-muted: #9198a1;
-  --borderColor-default: #30363d;
-  --borderColor-muted: #21262d;
-  --danger-fg: #f85149;
-  --success-fg: #3fb950;
-  --attention-fg: #d29922;
-  --accent-fg: #58a6ff;
-}
-
-.pde-oas-root[data-theme="dark"] .markdown-body hr {
-  border-bottom-color: var(--pde-color-border-default);
-  background: transparent;
-}
-
-/* ---- Hide macOS traffic-light dots in md-editor code blocks (not wanted in docs) ---- */
-.pde-oas-root .md-editor-codeblock-lights {
-  display: none;
-}
-
-.pde-oas-root .md-editor-codeblock-lang {
-  color: var(--pde-color-text-tertiary);
-  font-size: 11px;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
+@import "./theme.css";
 
 /* ==========================================================================
    Root layout
@@ -518,7 +191,6 @@
   flex-direction: column;
   overflow-y: auto;
   border-right: 1px solid var(--pde-color-border-subtle);
-  background: var(--pde-color-surface);
 }
 
 .pde-oas-sidebar-header {
@@ -1014,8 +686,8 @@
 }
 
 .pde-oas-status-success {
-  background: #1a7f37;
-  color: #ffffff;
+  background: var(--color-success-soft);
+  color: var(--color-success);
 }
 
 .pde-oas-status-error {
@@ -1080,62 +752,13 @@
 
 .pde-oas-language-selectors {
   display: flex;
+  flex: 1;
   align-items: center;
+  justify-content: flex-start;
   gap: var(--pde-space-1);
   min-width: 0;
   overflow: hidden;
 }
-
-.pde-oas-language-selectors .chakra-select__trigger,
-.pde-oas-language-selectors [data-part="trigger"] {
-  background: var(--pde-color-surface);
-  border-color: var(--pde-color-border-default);
-  color: var(--pde-color-text-primary);
-  font-size: 12px;
-  min-width: 64px;
-  max-width: 140px;
-  height: 26px;
-  border-radius: var(--pde-radius-md);
-  padding: 0 8px 0 10px;
-}
-
-.pde-oas-language-selectors [data-part="indicator"] {
-  color: var(--pde-color-text-tertiary);
-  margin-left: 2px;
-}
-
-.pde-oas-language-selectors .chakra-select__trigger:hover {
-  background: var(--pde-color-surface-hover);
-}
-
-/* Select dropdown (portalled inline, inherits theme variables) */
-.pde-oas-language-selectors [data-part="content"] {
-  background: var(--pde-color-surface);
-  border: 1px solid var(--pde-color-border-default);
-  border-radius: var(--pde-radius-md);
-  box-shadow: var(--pde-shadow-md);
-  padding: 4px;
-}
-
-.pde-oas-language-selectors [data-part="item"] {
-  color: var(--pde-color-text-primary);
-  font-size: 12px;
-  border-radius: var(--pde-radius-sm);
-}
-
-.pde-oas-language-selectors [data-part="item"][data-highlighted],
-.pde-oas-language-selectors [data-part="item"]:hover {
-  background: var(--pde-color-surface-hover);
-}
-
-.pde-oas-language-selectors [data-part="item"][data-selected] {
-  color: var(--pde-color-accent);
-}
-
-.pde-oas-language-selectors [data-part="indicator"] {
-  color: var(--pde-color-accent);
-}
-
 .pde-oas-code-icon-button {
   display: flex;
   align-items: center;
@@ -1161,6 +784,7 @@
 .pde-oas-code-block-request,
 .pde-oas-code-block-response {
   position: relative;
+  overflow: hidden;
   border-radius: 0;
 }
 
@@ -1195,7 +819,7 @@
   font-family: var(--pde-font-mono);
   font-size: var(--pde-font-size-sm);
   line-height: 1.55;
-  overflow-x: auto;
+  overflow-x: hidden;
   white-space: pre;
 }
 
@@ -1209,6 +833,7 @@
 .pde-oas-highlighted-code {
   margin: 0;
   width: 100%;
+  height: 100%;
 }
 
 .pde-oas-highlighted-code pre.shiki {
@@ -1832,80 +1457,6 @@
 }
 
 /* ==========================================================================
-   Unified custom scrollbars — applies to every scrollable descendant
-   ========================================================================== */
-
-.pde-oas-root * {
-  scrollbar-width: thin;
-  scrollbar-color: var(--pde-color-border-strong) transparent;
-}
-
-.pde-oas-root *::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-.pde-oas-root *::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.pde-oas-root *::-webkit-scrollbar-thumb {
-  background: var(--pde-color-border-strong);
-  border-radius: 4px;
-}
-
-.pde-oas-root *::-webkit-scrollbar-thumb:hover {
-  background: var(--pde-color-text-tertiary);
-}
-
-.pde-oas-root *::-webkit-scrollbar-corner {
-  background: transparent;
-}
-
-/* Dark mode scrollbar adjustments */
-.pde-oas-root[data-theme="dark"] * {
-  scrollbar-color: var(--pde-color-border-strong) transparent;
-}
-
-.pde-oas-root[data-theme="dark"] *::-webkit-scrollbar-thumb {
-  background: var(--pde-color-border-strong);
-}
-
-.pde-oas-root[data-theme="dark"] *::-webkit-scrollbar-thumb:hover {
-  background: var(--pde-color-text-secondary);
-}
-
-/* ==========================================================================
-   Chakra CodeBlock overrides
-   ========================================================================== */
-
-.pde-oas-code-block-request .chakra-code-block,
-.pde-oas-code-block-response .chakra-code-block {
-  margin: 0;
-  background: transparent !important;
-}
-
-.pde-oas-code-block-request .chakra-code-block__code,
-.pde-oas-code-block-request pre,
-.pde-oas-code-block-response .chakra-code-block__code,
-.pde-oas-code-block-response pre {
-  margin: 0 !important;
-  padding: var(--pde-space-4) !important;
-  font-family: var(--pde-font-mono) !important;
-  font-size: var(--pde-font-size-sm) !important;
-  line-height: 1.55 !important;
-  overflow-x: auto;
-  background: transparent !important;
-}
-
-.pde-oas-code-block-request .chakra-code-block__code,
-.pde-oas-code-block-request code,
-.pde-oas-code-block-response .chakra-code-block__code,
-.pde-oas-code-block-response code {
-  color: var(--pde-color-text-primary) !important;
-}
-
-/* ==========================================================================
    Responsive
    ========================================================================== */
 
@@ -1942,78 +1493,204 @@
   }
 }
 
-/* ==========================================================================
-   Tree method badge overrides (more saturated than tree defaults)
-   ========================================================================== */
+/* Reference layout: quiet navigation, readable prose, and paired examples. */
+.pde-oas-root :is(button, a, input, select, [tabindex]):focus-visible {
+  outline: 2px solid var(--pde-color-accent);
+  outline-offset: 3px;
+}
+.pde-oas-root button:disabled { cursor: not-allowed; opacity: .5; }
+.pde-oas-sidebar { background: var(--pde-color-surface-subtle); }
+.pde-oas-content { overscroll-behavior: contain; scroll-padding-top: 24px; }
+.pde-oas-document-intro { padding: 16px 0 20px; max-width: 680px; }
+.pde-oas-intro-eyebrow {
+  display: flex; align-items: center; gap: 12px;
+  color: var(--pde-color-text-accent); font-size: 11px;
+  font-weight: 650; letter-spacing: .09em; margin-bottom: 16px;
+}
+.pde-oas-intro-eyebrow span {
+  color: var(--pde-color-text-secondary); font-weight: 400; letter-spacing: 0;
+  border-left: 1px solid var(--pde-color-border-default); padding-left: 12px;
+}
+.pde-oas-document-title { font-size: clamp(26px, 2.5vw, 36px); font-weight: 650; }
+.pde-oas-document-description { font-size: 15px; line-height: 1.8; }
+.pde-oas-operation-section { scroll-margin-top: 24px; padding-block: 40px; }
+.pde-oas-operation-title { line-height: 1.35; }
+.pde-oas-operation-description { line-height: 1.8; }
+.pde-oas-path-code { overflow-wrap: anywhere; }
+.pde-oas-request-card, .pde-oas-response-card {
+  border: 1px solid var(--pde-color-border-subtle); border-radius: 10px;
+  box-shadow: 0 3px 12px rgb(20 35 60 / 4%);
+}
+.pde-oas-code-placeholder {
+  min-height: 220px; border-radius: 10px;
+  background: var(--pde-color-surface-subtle);
+  color: var(--pde-color-text-secondary); padding: 20px; font-size: 12px;
+}
+.pde-oas-sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
+}
+.pde-oas-drawer {
+  position: fixed; inset: 0; margin: 0; padding: 0; border: 0;
+  height: 100dvh; max-height: 100dvh; width: min(420px, 92vw); max-width: 92vw;
+  color: var(--pde-color-text-primary); background: var(--pde-color-surface);
+  box-shadow: var(--pde-shadow-md);
+}
+.pde-oas-drawer-left { margin-right: auto; }
+.pde-oas-drawer-right { margin-left: auto; }
+.pde-oas-drawer::backdrop { background: rgb(10 20 40 / 40%); backdrop-filter: blur(2px); }
+.pde-oas-drawer-body { display: flex; flex-direction: column; min-height: 100%; }
+.pde-oas-drawer-heading {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px; border-bottom: 1px solid var(--pde-color-border-subtle);
+  font-weight: 600;
+}
+.pde-oas-drawer .pde-oas-sidebar { flex: 1; width: 100%; }
+.pde-oas-drawer .pde-oas-code-stack { padding: 16px; }
+@media (max-width: 1040px) {
+  .pde-oas-operation-section { grid-template-columns: minmax(0, 1fr); padding-block: 28px; }
+  .pde-oas-content { padding-inline: 24px; }
+}
+@media (max-width: 720px) {
+  .pde-oas-content { padding-inline: 18px; }
+  .pde-oas-operation-title { font-size: 22px; }
+  .pde-oas-document-intro { padding-top: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pde-oas-root *, .pde-oas-root *::before, .pde-oas-root *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    transition-duration: .01ms !important;
+  }
+}
+.pde-oas-code-scroll { overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+.pde-oas-request-card-actions .pde-oas-copy-button { position: static; }
+.pde-oas-markdown ul { list-style: disc; }
+.pde-oas-markdown ol { list-style: decimal; }
 
-.pde-oas-root .pde-tree-methodGet {
-  color: #1a7f37;
-  background: #dafbe1;
+/* Shared neutral surfaces, with semantic colors reserved for meaningful state. */
+.pde-oas-root .pde-oas-content { background: var(--color-canvas); }
+.pde-oas-root .pde-oas-sidebar,
+.pde-oas-root .pde-oas-header { background: var(--color-surface); }
+.pde-oas-root .pde-oas-nav-tree,
+.pde-oas-root .pde-tree-searchRow,
+.pde-oas-root .pde-tree-treeContainer { background: transparent; }
+.pde-oas-root .pde-oas-sidebar-tree { padding: 0 12px 12px; }
+.pde-oas-root .pde-tree-searchRow { padding: 0 0 12px; margin-bottom: 8px; border-bottom: 0; }
+.pde-oas-root .pde-tree-searchInput {
+  height: var(--control-height-md); border-radius: var(--radius-md);
+  background: var(--color-surface-subtle); border: 1px solid var(--color-border-subtle);
+}
+.pde-oas-root .pde-tree-nodeRow { border-radius: var(--radius-md); min-height: 30px; }
+.pde-oas-root .pde-tree-nodeRowSelected { background: var(--color-surface-selected); }
+.pde-oas-root .pde-tree-nodeRowSelected::before { background: var(--color-accent); left: 0; }
+.pde-oas-root .pde-tree-methodGet { color: var(--pde-method-get-text); background: var(--pde-method-get-bg); }
+.pde-oas-root .pde-tree-methodPost { color: var(--pde-method-post-text); background: var(--pde-method-post-bg); }
+.pde-oas-root .pde-tree-methodPut { color: var(--pde-method-put-text); background: var(--pde-method-put-bg); }
+.pde-oas-root .pde-tree-methodPatch { color: var(--pde-method-patch-text); background: var(--pde-method-patch-bg); }
+.pde-oas-root .pde-tree-methodDelete { color: var(--pde-method-delete-text); background: var(--pde-method-delete-bg); }
+.pde-oas-root .pde-tree-methodOther { color: var(--pde-method-other-text); background: var(--pde-method-other-bg); }
+
+.pde-oas-root :is(.pde-oas-request-card, .pde-oas-response-card) {
+  background: var(--color-surface); border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg); box-shadow: none; overflow: hidden;
+}
+.pde-oas-root :is(.pde-oas-request-card-header, .pde-oas-response-card-header) {
+  min-height: 48px; height: auto; padding: 8px 10px;
+  background: var(--color-surface-subtle); border-bottom: 1px solid var(--color-border-subtle);
+}
+.pde-oas-root :is(.pde-oas-code-block-request, .pde-oas-code-block-response) {
+  background: var(--color-surface); border-top: 0;
+}
+.pde-oas-root .pde-oas-code-sticky { max-height: none; overflow: visible; }
+.pde-oas-root .pde-oas-code-column { top: 16px; }
+.pde-oas-root .pde-oas-language-selectors { overflow: visible; gap: 6px; }
+.pde-oas-root .pde-oas-copy-button,
+.pde-oas-root .pde-oas-icon-button,
+.pde-oas-root .pde-oas-theme-toggle {
+  width: var(--control-height-md); height: var(--control-height-md);
+  padding: 0; flex-shrink: 0; border-radius: var(--radius-md);
+  color: var(--color-text-secondary); background: transparent; border: 1px solid transparent;
+}
+.pde-oas-root :is(.pde-oas-copy-button, .pde-oas-icon-button, .pde-oas-theme-toggle):hover {
+  color: var(--color-text-primary); background: var(--color-surface-hover);
+  border-color: var(--color-border-default);
+}
+.pde-oas-root .pde-oas-copy-button.is-copied { color: var(--color-success); }
+.pde-oas-root .pde-oas-response-status-tab { min-height: 24px; padding: 2px 7px; border-radius: var(--radius-sm); }
+.pde-oas-root .pde-oas-response-status-tab:hover { background: var(--color-surface-hover); }
+.pde-oas-root .pde-oas-response-status-tab-active { background: var(--color-surface-selected); }
+.pde-oas-root .pde-oas-code-scroll {
+  max-height: min(320px, max(160px, calc((100dvh - 208px) / 2)));
+  overflow: auto; overscroll-behavior: contain; position: relative;
+}
+.pde-oas-root .pde-oas-code-block-response .pde-oas-code-scroll {
+  max-height: min(280px, max(144px, calc((100dvh - 208px) / 2)));
+}
+.pde-oas-root .pde-oas-highlighted-code { width: max-content; min-width: 100%; height: auto; }
+.pde-oas-root .pde-oas-highlighted-code pre,
+.pde-oas-root pre.pde-oas-highlighted-code {
+  margin: 0; padding: 16px; overflow: visible; white-space: pre;
+  font-family: var(--pde-font-mono); font-size: var(--font-size-sm); line-height: 1.65;
 }
 
-.pde-oas-root .pde-tree-methodPost {
-  color: #0969da;
-  background: #ddf4ff;
+/* Select controls are compact; their menus have an independent readable width. */
+.pde-oas-select { flex: 0 1 auto; min-width: 0; }
+.pde-oas-select-language { width: 152px; }
+.pde-oas-select-client { width: 128px; }
+.pde-oas-select-server { width: 100%; }
+.pde-oas-root .pde-oas-select-trigger {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  min-width: 0; max-width: none; min-height: var(--control-height-md); height: var(--control-height-md);
+  padding: 0 9px; border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md); background: var(--color-surface);
+  color: var(--color-text-primary); font: inherit; font-size: var(--font-size-sm);
+  cursor: pointer; box-shadow: none; transition: background var(--transition-fast), border-color var(--transition-fast);
 }
-
-.pde-oas-root .pde-tree-methodPut {
-  color: #9a6700;
-  background: #fff8c5;
+.pde-oas-root .pde-oas-select-trigger:hover { background: var(--color-surface-hover); border-color: var(--color-border-strong); }
+.pde-oas-root .pde-oas-select-trigger[data-state="open"] { border-color: var(--color-accent-border); box-shadow: 0 0 0 2px var(--color-focus-ring); }
+.pde-oas-select-value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; flex: 1; }
+.pde-oas-select-chevron { flex: none; width: 13px; height: 13px; color: var(--color-text-tertiary); transition: transform var(--transition-fast); }
+[data-state="open"] > .pde-oas-select-chevron { transform: rotate(180deg); }
+.pde-oas-language-icon { display: inline-flex; align-items: center; justify-content: center; width: 17px; height: 17px; flex: none; }
+.pde-oas-language-icon svg { display: block; width: 16px; height: 16px; }
+.pde-oas-select-positioner { z-index: 1500; font-family: var(--font-family-ui); font-size: var(--font-size-sm); }
+.pde-oas-select-popup {
+  box-sizing: border-box; width: min(248px, calc(100vw - 24px)); min-width: 0;
+  max-width: calc(100vw - 24px); max-height: min(320px, var(--available-height, 320px));
+  overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain;
+  padding: 5px; border: 1px solid var(--color-border-default); border-radius: var(--radius-lg);
+  background: var(--color-surface); color: var(--color-text-primary);
+  box-shadow: var(--shadow-lg); outline: none; animation: none;
 }
-
-.pde-oas-root .pde-tree-methodPatch {
-  color: #8250df;
-  background: #fbefff;
+.pde-oas-select-positioner[data-variant="server"] .pde-oas-select-popup { width: min(360px, calc(100vw - 24px)); }
+.pde-oas-select-option {
+  display: flex; align-items: center; gap: 10px; min-height: 34px;
+  padding: 6px 9px; border-radius: var(--radius-sm); cursor: pointer;
+  color: var(--color-text-secondary); background: transparent; font-size: var(--font-size-sm);
 }
+.pde-oas-select-option[data-highlighted], .pde-oas-select-option:hover { background: var(--color-surface-hover); color: var(--color-text-primary); }
+.pde-oas-select-option[data-state="checked"] { color: var(--color-text-primary); background: var(--color-surface-selected); }
+.pde-oas-select-option-label { flex: 1; min-width: 0; white-space: normal; overflow-wrap: anywhere; line-height: 20px; }
+.pde-oas-select-check { display: inline-flex; margin-left: auto; color: var(--color-text-accent); flex: none; }
 
-.pde-oas-root .pde-tree-methodDelete {
-  color: #cf222e;
-  background: #ffebe9;
+/* Preserve scroll geometry while showing thumbs only during interaction. */
+.pde-oas-root *, .pde-oas-select-popup {
+  scrollbar-width: thin; scrollbar-color: transparent transparent;
 }
-
-.pde-oas-root .pde-tree-methodOther {
-  color: #59636e;
-  background: #eaeef2;
+.pde-oas-root *::-webkit-scrollbar, .pde-oas-select-popup::-webkit-scrollbar { width: 6px; height: 6px; }
+.pde-oas-root *::-webkit-scrollbar-track, .pde-oas-select-popup::-webkit-scrollbar-track { background: transparent; }
+.pde-oas-root *::-webkit-scrollbar-thumb, .pde-oas-select-popup::-webkit-scrollbar-thumb { background: transparent; border-radius: var(--radius-full); }
+.pde-oas-root *:hover, .pde-oas-root *:focus-visible,
+.pde-oas-select-popup:hover, .pde-oas-select-popup:focus-within { scrollbar-color: var(--color-border-strong) transparent; }
+.pde-oas-root *:hover::-webkit-scrollbar-thumb, .pde-oas-root *:focus-visible::-webkit-scrollbar-thumb,
+.pde-oas-select-popup:hover::-webkit-scrollbar-thumb, .pde-oas-select-popup:focus-within::-webkit-scrollbar-thumb { background: var(--color-border-strong); }
+.pde-oas-root *::-webkit-scrollbar-corner, .pde-oas-select-popup::-webkit-scrollbar-corner { background: transparent; }
+@media (hover: none) {
+  .pde-oas-root *, .pde-oas-select-popup { scrollbar-color: var(--color-border-strong) transparent; }
 }
-
-.pde-oas-root[data-theme="dark"] .pde-tree-methodGet {
-  color: #3fb950;
-  background: rgba(63, 185, 80, 0.15);
-}
-
-.pde-oas-root[data-theme="dark"] .pde-tree-methodPost {
-  color: #58a6ff;
-  background: rgba(56, 139, 253, 0.15);
-}
-
-.pde-oas-root[data-theme="dark"] .pde-tree-methodPut {
-  color: #d29922;
-  background: rgba(187, 128, 9, 0.15);
-}
-
-.pde-oas-root[data-theme="dark"] .pde-tree-methodPatch {
-  color: #bc8cff;
-  background: rgba(163, 113, 247, 0.15);
-}
-
-.pde-oas-root[data-theme="dark"] .pde-tree-methodDelete {
-  color: #f85149;
-  background: rgba(248, 81, 73, 0.15);
-}
-
-.pde-oas-root[data-theme="dark"] .pde-tree-methodOther {
-  color: #8b949e;
-  background: rgba(139, 148, 158, 0.15);
-}
-
-/* ==========================================================================
-   Select trigger: ensure dropdown indicator is visible
-   ========================================================================== */
-
-.pde-oas-root [data-scope="select"] [data-part="indicator"] {
-  color: var(--pde-color-text-tertiary);
-}
-
-.pde-oas-root [data-scope="select"] [data-part="trigger"] {
-  min-width: auto;
+@media (max-width: 720px) {
+  .pde-oas-select-language { width: 148px; }
+  .pde-oas-select-client { width: 110px; }
+  .pde-oas-root .pde-oas-request-card-header { padding-inline: 8px; }
 }

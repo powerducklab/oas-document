@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { createRef } from "react";
+import type { OasDocumentHandle } from "../../src/react/libs/types";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 
 // ---- Mock external packages before importing the component ---------------
 
@@ -185,4 +187,78 @@ describe("OasDocument", () => {
     const root = container.querySelector(".pde-oas-root") as HTMLElement;
     expect(root.style.getPropertyValue("--sidebar-width")).toBe("320px");
   });
+});
+
+
+describe("navigation resilience", () => {
+  it("scopes imperative scrolling to the correct component instance", async () => {
+    const first = createRef<OasDocumentHandle>();
+    const second = createRef<OasDocumentHandle>();
+    const { container } = render(<><OasDocument ref={first} input={fixtureDoc as never} /><OasDocument ref={second} input={fixtureDoc as never} /></>);
+    await waitFor(() => expect(second.current?.getOperations()).toHaveLength(2));
+    const sections = container.querySelectorAll<HTMLElement>('[data-op-section="createUser"]');
+    const scrollFirst = vi.fn(); const scrollSecond = vi.fn();
+    sections[0].scrollIntoView = scrollFirst; sections[1].scrollIntoView = scrollSecond;
+    act(() => { second.current?.selectOperation("createUser"); });
+    expect(scrollFirst).not.toHaveBeenCalled();
+    expect(scrollSecond).toHaveBeenCalledOnce();
+    expect(sections[0].id).not.toBe(sections[1].id);
+  });
+  it("clears stale operations after invalid input replaces a loaded document", async () => {
+    const ref = createRef<OasDocumentHandle>();
+    const { rerender } = render(<OasDocument ref={ref} input={fixtureDoc as never} />);
+    await waitFor(() => expect(ref.current?.getOperations()).toHaveLength(2));
+    rerender(<OasDocument ref={ref} input={{} as never} />);
+    await waitFor(() => expect(ref.current?.getOperations()).toHaveLength(0));
+    expect(screen.queryByText("List users")).not.toBeInTheDocument();
+  });
+  it("renders without IntersectionObserver", async () => {
+    const observer = globalThis.IntersectionObserver;
+    Object.defineProperty(globalThis, "IntersectionObserver", { configurable: true, writable: true, value: undefined });
+    try {
+      render(<OasDocument input={fixtureDoc as never} />);
+      await screen.findByText("List users");
+    } finally { globalThis.IntersectionObserver = observer; }
+  });
+  it("rejects an unknown operation without changing selection", async () => {
+    const ref = createRef<OasDocumentHandle>();
+    render(<OasDocument ref={ref} input={fixtureDoc as never} />);
+    await waitFor(() => expect(ref.current?.getOperations()).toHaveLength(2));
+    const before = ref.current?.getSelectedOperation();
+    expect(ref.current?.selectOperation("missing")).toBe(false);
+    expect(ref.current?.getSelectedOperation()).toBe(before);
+  });
+});
+
+describe("mobile code drawer", () => {
+  it("opens without a navigation tree and closes on cancellation", async () => {
+    vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() })));
+    const show = vi.spyOn(HTMLDialogElement.prototype, "showModal").mockImplementation(function (this: HTMLDialogElement) { this.setAttribute("open", ""); });
+    const close = vi.spyOn(HTMLDialogElement.prototype, "close").mockImplementation(function (this: HTMLDialogElement) { this.removeAttribute("open"); });
+    try {
+      render(<OasDocument input={fixtureDoc as never} showTree={false} />);
+      await screen.findByRole("button", { name: "Code" });
+      expect(screen.queryByRole("button", { name: "Open navigation" })).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "Code" }));
+      const drawer = await screen.findByRole("dialog", { name: "Code examples" });
+      expect(show).toHaveBeenCalled();
+      fireEvent(drawer, new Event("cancel", { bubbles: false, cancelable: true }));
+      expect(drawer).not.toHaveAttribute("open");
+    } finally { show.mockRestore(); close.mockRestore(); vi.unstubAllGlobals(); }
+  });
+});
+
+it("tracks the reading edge without selecting the preceding section", async () => {
+  const ref = createRef<OasDocumentHandle>();
+  const change = vi.fn();
+  const { container } = render(<OasDocument ref={ref} input={fixtureDoc as never} onOperationChange={change} />);
+  await waitFor(() => expect(ref.current?.getOperations()).toHaveLength(2));
+  const readingPane = container.querySelector<HTMLElement>(".pde-oas-content")!;
+  readingPane.getBoundingClientRect = () => ({ top: 56 }) as DOMRect;
+  const sections = container.querySelectorAll<HTMLElement>("[data-op-section]");
+  sections[0].getBoundingClientRect = () => ({ top: -700 }) as DOMRect;
+  sections[1].getBoundingClientRect = () => ({ top: 104 }) as DOMRect;
+  fireEvent.scroll(readingPane);
+  await waitFor(() => expect(ref.current?.getSelectedOperation()?.id).toBe(sections[1].dataset.opSection));
+  expect(change).not.toHaveBeenCalled();
 });

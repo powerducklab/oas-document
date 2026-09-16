@@ -470,3 +470,10 @@ describe("getObjectProperty", () => {
     expect(getObjectProperty({ info: null }, "info")).toBeUndefined();
   });
 });
+
+describe("hostile object boundaries", () => {
+  it("does not resolve inherited object properties", () => {
+    expect(resolveJsonPointer({}, "#/constructor")).toBeUndefined();
+    expect(resolveJsonPointer({}, "#/__proto__")).toBeUndefined();
+  });
+});

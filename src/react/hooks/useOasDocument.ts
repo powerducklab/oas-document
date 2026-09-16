@@ -97,6 +97,12 @@ export function useOasDocument(
     let cancelled = false;
 
     setLoading(true);
+    setError(null);
+    setDocument(null);
+    setOperations([]);
+    setNavigationGroups([]);
+    setTree([]);
+    setWarnings([]);
 
     if (input === null || input === undefined) {
       setDocument(null);

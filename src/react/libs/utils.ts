@@ -60,8 +60,9 @@ export async function copyToClipboard(text: string): Promise<boolean> {
     return false;
   }
 
+  const previousFocus = document.activeElement;
+  const textarea = document.createElement("textarea");
   try {
-    const textarea = document.createElement("textarea");
 
     textarea.value = text;
     textarea.style.position = "fixed";
@@ -72,11 +73,12 @@ export async function copyToClipboard(text: string): Promise<boolean> {
 
     const succeeded = document.execCommand("copy");
 
-    document.body.removeChild(textarea);
-
     return succeeded;
   } catch {
     return false;
+  } finally {
+    textarea.remove();
+    if (previousFocus instanceof HTMLElement) previousFocus.focus({ preventScroll: true });
   }
 }
 
@@ -169,11 +171,16 @@ export function walkTree(
   visit: (node: TreeNode, depth: number) => void,
   depth = 0,
 ): void {
-  for (const node of nodes) {
-    visit(node, depth);
-
-    if (node.children && node.children.length > 0) {
-      walkTree(node.children, visit, depth + 1);
+  const stack = nodes.map((node) => ({ node, depth })).reverse();
+  const visited = new Set<TreeNode>();
+  while (stack.length) {
+    const entry = stack.pop()!;
+    if (visited.has(entry.node)) continue;
+    visited.add(entry.node);
+    visit(entry.node, entry.depth);
+    const children = entry.node.children ?? [];
+    for (let i = children.length - 1; i >= 0; i--) {
+      stack.push({ node: children[i], depth: entry.depth + 1 });
     }
   }
 }
@@ -190,46 +197,11 @@ export function buildOperationTreeIndex(
   operations: OasOperation[],
 ): Map<string, string> {
   const index = new Map<string, string>();
-
-  const operationById = new Map<string, OasOperation>();
-
-  for (const operation of operations) {
-    operationById.set(operation.id, operation);
-
-    if (operation.operationId) {
-      operationById.set(operation.operationId, operation);
-    }
-  }
-
+  const resolve = createOperationResolver(operations);
   walkTree(tree, (node) => {
-    const metadata = node.metadata as DocNodeMetadata | undefined;
-
-    if (metadata?.kind !== "operation") {
-      return;
-    }
-
-    // Direct id match
-    if (operationById.has(node.id)) {
-      index.set(operationById.get(node.id)!.id, node.id);
-      return;
-    }
-
-    // Match by operationId
-    if (metadata.operationId && operationById.has(metadata.operationId)) {
-      index.set(operationById.get(metadata.operationId)!.id, node.id);
-      return;
-    }
-
-    // Match by method + path
-    if (metadata.method && metadata.path) {
-      const match = operations.find(
-        (op) => op.method === metadata.method && op.path === metadata.path,
-      );
-
-      if (match) {
-        index.set(match.id, node.id);
-      }
-    }
+    if ((node.metadata as DocNodeMetadata | undefined)?.kind !== "operation") return;
+    const operation = resolve(node);
+    if (operation && !index.has(operation.id)) index.set(operation.id, node.id);
   });
 
   return index;
@@ -248,6 +220,7 @@ export function buildOrderedOperations(
   tree: TreeNode[],
   operations: OasOperation[],
 ): OasOperation[] {
+  const resolve = createOperationResolver(operations);
   const seen = new Set<string>();
   const ordered: OasOperation[] = [];
 
@@ -267,7 +240,7 @@ export function buildOrderedOperations(
       return;
     }
 
-    pushOperation(resolveOperationFromNode(operations, node));
+    pushOperation(resolve(node));
   });
 
   // Append any operations the tree did not surface, preserving original order.
@@ -278,4 +251,33 @@ export function buildOrderedOperations(
   }
 
   return ordered;
+}
+
+/** Builds constant-time node lookups while preserving first-match semantics. */
+export function createOperationResolver(operations: OasOperation[]) {
+  const ids = new Map<string, OasOperation>();
+  const endpoints = new Map<string, OasOperation>();
+  for (const operation of operations) {
+    for (const id of [operation.id, operation.operationId]) {
+      if (id && !ids.has(id)) ids.set(id, operation);
+    }
+    const endpoint = JSON.stringify([operation.method, operation.path]);
+    if (!endpoints.has(endpoint)) endpoints.set(endpoint, operation);
+  }
+  return (node: TreeNode): OasOperation | undefined => {
+    const metadata = node.metadata as DocNodeMetadata | undefined;
+    return ids.get(node.id) ??
+      (metadata?.operationId ? ids.get(metadata.operationId) : undefined) ??
+      endpoints.get(JSON.stringify([metadata?.method, metadata?.path]));
+  };
+}
+
+/** Restricts configurable navigation links to web and relative URLs. */
+export function safeNavigationHref(value: string): string | undefined {
+  try {
+    const url = new URL(value, "https://oas-document.invalid");
+    return /^(https?:)$/.test(url.protocol) ? value : undefined;
+  } catch {
+    return undefined;
+  }
 }

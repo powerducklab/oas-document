@@ -49,8 +49,8 @@ export interface OasDocumentHeaderConfig {
  */
 export interface OasDocumentProps {
   /**
-   * OpenAPI document to render. Accepts a raw OpenAPI 3.x/3.2 object or a URL
-   * pointing to one. When omitted the component renders nothing.
+   * OpenAPI document to render. Accepts a document object or serialized JSON/YAML.
+   * Null or undefined input renders an empty state.
    */
   input: OpenApiInput | OpenApiDocument | null | undefined;
 
@@ -92,7 +92,7 @@ export interface OasDocumentProps {
   /** Whether to show the sidebar tree. Default true. */
   showTree?: boolean;
 
-  /** Sidebar width in pixels. Default 280. */
+  /** Sidebar width in pixels, clamped to 200–480. Defaults to a saved width or 280. */
   treeWidth?: number;
 }
 

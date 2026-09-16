@@ -163,3 +163,18 @@ describe("loadOasDocument result shape", () => {
     expect(result).toHaveProperty("warnings");
   });
 });
+
+describe("loader resilience", () => {
+  it.each([null, undefined, 42, [], "openapi: 3.2.0", {}])("returns a structured error for invalid unvalidated input %s", async (input) => {
+    const result = await loadOasDocument(input as never, { autoUpgrade: false });
+    expect(result.error).toBeInstanceOf(Error);
+    expect(result.document).toBeNull();
+    expect(result.operations).toEqual([]);
+  });
+  it("contains exceptions thrown while deriving operations", async () => {
+    const input = { ...minimalDoc, get paths() { throw new Error("Unreadable paths"); } };
+    const result = await loadOasDocument(input, { autoUpgrade: false });
+    expect(result.error?.message).toBe("Unreadable paths");
+    expect(result.operations).toEqual([]);
+  });
+});

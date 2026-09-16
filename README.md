@@ -12,7 +12,7 @@ Built on top of [`@powerduck/openapi-parser`](https://www.npmjs.com/package/@pow
 - **Stripe-style layout** — configurable header (logo, title, nav links, theme toggle), sidebar tree, two-column operation view with sticky code panel
 - **Light / dark themes** — toggle in the header, all colors resolve through CSS variables
 - **Auto-upgrade to OAS 3.2** — validates and upgrades via `@powerduck/openapi-parser` (toggleable, default on)
-- **Scroll-spy navigation** — IntersectionObserver tracks visible operations and auto-locates them in the tree
+- **Scroll-spy navigation** — passive scroll listener with binary search over section positions, auto-locates operations in the tree
 - **Markdown rendering** — operation descriptions and field docs rendered via `@powerduck/md-editor` (code highlighting, tips admonitions)
 - **Multi-language code examples** — generated via `@powerduck/openapi-codegen` (cURL, JavaScript/fetch, JavaScript/axios, Python/requests, Go), with response preview
 - **Schema exploration** — nested property tables with expand/collapse, type labels, required indicators, constraint badges (enum, min/max, pattern, format), and oneOf/anyOf rendered as switchable tabs
@@ -38,7 +38,6 @@ npm install react react-dom
 ```tsx
 import { OasDocument } from "@powerduck/oas-document/react";
 import "@powerduck/oas-document/react/index.css";
-import "@powerduck/tree/react/index.css";
 
 const spec = {
   openapi: "3.1.0",
@@ -195,22 +194,33 @@ Import the stylesheet:
 
 ```ts
 import "@powerduck/oas-document/react/index.css";
-import "@powerduck/tree/react/index.css";
 ```
 
-The component uses CSS variables prefixed with `--pde-`. Light and dark themes are defined via `data-theme` on the root element. Override variables on `.pde-oas-root` to customize colors:
+The palette follows `powerduck-react/src/theme/tokens.css`. Surfaces, text,
+borders, semantic colors, control heights, and radii use the shared `--color-*`,
+`--control-height-*`, and `--radius-*` tokens. The `--pde-*` variables provide
+compatibility aliases. Override both the document and portalled menu scopes so
+custom colors remain consistent:
 
 ```css
-.pde-oas-root {
-  --pde-color-accent: #635bff;
-  --pde-color-surface: #ffffff;
+:is(.pde-oas-root, .pde-oas-theme) {
+  --color-accent: #635bff;
+  --color-surface: #ffffff;
 }
 
-.pde-oas-root[data-theme="dark"] {
-  --pde-color-accent: #a5a0ff;
-  --pde-color-surface: #161b22;
+:is(.pde-oas-root, .pde-oas-theme)[data-theme="dark"] {
+  --color-accent: #a5a0ff;
+  --color-surface: #1f2125;
 }
 ```
+
+Language menus include colorful icons, readable labels, keyboard navigation, and
+viewport-aware positioning. Menus escape card clipping but remain inside a native
+modal's top layer. Code and response scrollbars stay transparent until hover or
+keyboard focus; touch devices retain visible scroll affordances.
+
+The React entry requires a bundler that handles CSS imports. Use the core entry
+for direct Node.js execution without a stylesheet loader.
 
 ## Auto-Upgrade
 
@@ -227,7 +237,36 @@ npm install
 npm run typecheck   # tsc --noEmit
 npm test            # vitest run
 npm run build       # tsup
+npm run check       # English source check, types, tests, and build
+npm run preview     # Local responsive UI preview
+npm run benchmark   # Navigation lookup benchmark
 ```
+
+## Interaction and performance
+
+The reference layout pairs endpoint descriptions with code examples. Navigation
+tracks the top of the reading pane. On small screens, native modal drawers provide
+keyboard focus management, Escape dismissal, and independent code access even
+when `showTree` is false. Language and HTTP client preferences are shared across
+examples within one document instance.
+
+Code examples are generated when they come within 600 pixels of the reading pane.
+One observer is shared across pending examples and released when no work remains.
+Syntax highlighting loads only the requested grammar. Its cache is limited to 64
+entries and 1,000,000 UTF-16 code units, and examples longer than 50,000 characters
+remain readable as plain text. Generated examples are bounded to six nested levels
+and a 1,000-node traversal budget. Explicit response examples take precedence over
+generated values. These safeguards do not truncate the source API document.
+
+Navigation indexing is linear in the number of nodes and operations. Scroll tracking
+uses a passive listener, one animation frame per update, and a binary search over
+section positions. Browser layout costs still depend on document complexity; this
+component does not virtualize the entire documentation page.
+
+Treat input objects as immutable and pass a new object when the document changes.
+`autoUpgrade={false}` skips full validation but still requires a document object with
+`openapi` and `info` fields. Loading and derivation errors return empty collections
+and a structured error instead of leaving a previous document active.
 
 ## License
 
