@@ -65,7 +65,7 @@
   },
   "dependencies": {
     "@chakra-ui/react": "^3.37.0",
-    "@powerduck/md-editor": "^0.11.4",
+    "@powerduck/md-editor": "^0.11.5",
     "@powerduck/openapi-codegen": "^0.6.2",
     "@powerduck/openapi-parser": "^0.3.5",
     "@powerduck/tree": "^0.7.4",
@@ -73,6 +73,9 @@
     "shiki": "^4.4.3"
   },
   "devDependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@testing-library/dom": "^10.4.2",
     "@testing-library/jest-dom": "^6.0.0",
     "@testing-library/react": "^14.0.0",
     "@types/react": "^19.3.0",

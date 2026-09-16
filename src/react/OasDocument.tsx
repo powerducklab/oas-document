@@ -34,6 +34,8 @@ import {
   getSchemaDescription,
   getSchemaEnum,
   getSchemaTypeLabel,
+  getCompositeAlternatives,
+  getCompositeKind,
   getProperty,
   getObjectProperty,
   isSchemaDeprecated,
@@ -995,12 +997,22 @@ function getSchemaConstraintLabel(
 
 function SchemaFieldRow({ field, document }: SchemaFieldRowProps) {
   const [expanded, setExpanded] = useState(false);
+  const [compositeExpanded, setCompositeExpanded] = useState(false);
 
   const { schema } = field;
 
   const childFields = useMemo(
     () => getDirectFields(schema, document),
     [schema, document],
+  );
+
+  const compositeKind = getCompositeKind(schema);
+  const compositeAlternatives = useMemo(
+    () =>
+      compositeKind && compositeKind !== "allOf"
+        ? getCompositeAlternatives(schema, document)
+        : [],
+    [schema, document, compositeKind],
   );
 
   const description = getSchemaDescription(schema);
@@ -1023,6 +1035,35 @@ function SchemaFieldRow({ field, document }: SchemaFieldRowProps) {
 
       {description ? (
         <Markdown className="pde-oas-field-description">{description}</Markdown>
+      ) : null}
+
+      {compositeAlternatives.length > 0 ? (
+        <div className="pde-oas-composite-section">
+          <button
+            type="button"
+            className="pde-oas-composite-toggle"
+            onClick={() => setCompositeExpanded((value) => !value)}
+          >
+            <span className="pde-oas-composite-toggle-icon">
+              {compositeExpanded ? "\u25BE" : "\u25B8"}
+            </span>
+            <span>{compositeKind} — {compositeAlternatives.length} option{compositeAlternatives.length > 1 ? "s" : ""}</span>
+          </button>
+          {compositeExpanded ? (
+            <div className="pde-oas-composite-alternatives">
+              {compositeAlternatives.map((alternative, index) => (
+                <div key={`${alternative.label}-${index}`} className="pde-oas-composite-alternative">
+                  <div className="pde-oas-composite-alternative-label">
+                    {alternative.label}
+                  </div>
+                  <div className="pde-oas-composite-alternative-body">
+                    <SchemaBlock schema={alternative.schema} document={document} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </div>
       ) : null}
 
       {childFields.length > 0 ? (
@@ -1555,13 +1596,13 @@ function CodeExamplesPanel({
 
         {responseBody ? (
           <div className="pde-oas-code-block-response">
-            <ScrollArea.Root variant="hover" h="280px">
+            <ScrollArea.Root variant="hover" maxH="280px">
               <ScrollArea.Viewport>
                 <HighlightedCode
                   code={responseBody}
                   language="json"
                   theme={theme}
-                />
+                />111
               </ScrollArea.Viewport>
               <ScrollArea.Scrollbar orientation="vertical">
                 <ScrollArea.Thumb />

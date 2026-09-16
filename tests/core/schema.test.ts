@@ -85,16 +85,16 @@ describe("getSchemaTypeLabel", () => {
     expect(getSchemaTypeLabel({ enum: ["a", "b", "c"] })).toBe("enum");
   });
 
-  it("returns 'oneOf' for oneOf schemas", () => {
+  it("returns 'oneOf (N)' for oneOf schemas", () => {
     expect(
       getSchemaTypeLabel({ oneOf: [{ type: "string" }, { type: "number" }] }),
-    ).toBe("oneOf");
+    ).toBe("oneOf (2)");
   });
 
-  it("returns 'anyOf' for anyOf schemas", () => {
+  it("returns 'anyOf (N)' for anyOf schemas", () => {
     expect(
       getSchemaTypeLabel({ anyOf: [{ type: "string" }] }),
-    ).toBe("anyOf");
+    ).toBe("anyOf (1)");
   });
 
   it("returns 'allOf' for allOf schemas", () => {

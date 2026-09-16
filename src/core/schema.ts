@@ -1,5 +1,6 @@
 import type {
   HttpMethod,
+  OpenApiDocument,
   OpenApiParameter,
   OpenApiSchema,
   OasSchemaField,
@@ -12,6 +13,7 @@ import {
   getStringProperty,
   isRecord,
   isSchemaRecord,
+  resolveSchemaReference,
 } from "./resolver";
 
 /* -------------------------------------------------------------------------- */
@@ -139,11 +141,11 @@ export function getSchemaTypeLabel(schema: OpenApiSchema | undefined): string {
   }
 
   if (Array.isArray(record.oneOf) && record.oneOf.length > 0) {
-    return "oneOf";
+    return `oneOf (${record.oneOf.length})`;
   }
 
   if (Array.isArray(record.anyOf) && record.anyOf.length > 0) {
-    return "anyOf";
+    return `anyOf (${record.anyOf.length})`;
   }
 
   if (Array.isArray(record.allOf) && record.allOf.length > 0) {
@@ -253,6 +255,146 @@ export function getSchemaConstraints(
   }
 
   return result;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Composite Schema (oneOf / anyOf / allOf)                                   */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * A single alternative within a oneOf or anyOf composite schema.
+ */
+export interface CompositeAlternative {
+  /** Display label, e.g. "Circle" or "Option 1". */
+  label: string;
+  /** Resolved schema for this alternative. */
+  schema: OpenApiSchema;
+}
+
+/**
+ * The composite keyword present on a schema, if any.
+ */
+export type CompositeKind = "oneOf" | "anyOf" | "allOf";
+
+/**
+ * Returns the composite keyword of a schema, or undefined if none.
+ */
+export function getCompositeKind(
+  schema: OpenApiSchema | undefined,
+): CompositeKind | undefined {
+  const record = schemaRecord(schema);
+
+  if (!record) {
+    return undefined;
+  }
+
+  if (Array.isArray(record.oneOf) && record.oneOf.length > 0) {
+    return "oneOf";
+  }
+
+  if (Array.isArray(record.anyOf) && record.anyOf.length > 0) {
+    return "anyOf";
+  }
+
+  if (Array.isArray(record.allOf) && record.allOf.length > 0) {
+    return "allOf";
+  }
+
+  return undefined;
+}
+
+/**
+ * Resolves the alternatives of a oneOf or anyOf composite schema.
+ *
+ * Each alternative's $ref is resolved against the document. When a
+ * discriminator is present, alternative labels are derived from the
+ * discriminator mapping or the schema title.
+ *
+ * allOf is not treated as alternatives because its entries are merged,
+ * not exclusive.
+ */
+export function getCompositeAlternatives(
+  schema: OpenApiSchema | undefined,
+  document: OpenApiDocument,
+): CompositeAlternative[] {
+  const record = schemaRecord(schema);
+
+  if (!record) {
+    return [];
+  }
+
+  const kind = getCompositeKind(schema);
+
+  if (kind === undefined || kind === "allOf") {
+    return [];
+  }
+
+  const entries = (kind === "oneOf" ? record.oneOf : record.anyOf) as unknown[];
+
+  if (!Array.isArray(entries) || entries.length === 0) {
+    return [];
+  }
+
+  const discriminator = getObjectProperty(record, "discriminator");
+  const discriminatorMapping = discriminator
+    ? getObjectProperty(discriminator, "mapping")
+    : undefined;
+  const discriminatorPropName = discriminator
+    ? getStringProperty(discriminator, "propertyName")
+    : undefined;
+
+  const alternatives: CompositeAlternative[] = [];
+
+  for (let i = 0; i < entries.length; i++) {
+    const entry = entries[i];
+
+    if (entry === undefined || entry === null) {
+      continue;
+    }
+
+    const resolved = resolveSchemaReference(document, entry);
+
+    if (!resolved) {
+      continue;
+    }
+
+    let label = getSchemaTitle(resolved) ?? `Option ${i + 1}`;
+
+    /*
+     * Try to derive a label from the discriminator mapping.
+     *
+     * The mapping maps a discriminator value to a $ref. We reverse-lookup
+     * by matching the resolved schema against each mapping target.
+     */
+    if (discriminatorMapping && isRecord(entry) && typeof entry.$ref === "string") {
+      for (const [mapValue, mapRef] of Object.entries(discriminatorMapping)) {
+        if (mapRef === entry.$ref) {
+          label = mapValue;
+          break;
+        }
+      }
+    }
+
+    /*
+     * If no title and no discriminator mapping, try the discriminator
+     * property value from the resolved schema's properties.
+     */
+    if (label === `Option ${i + 1}` && discriminatorPropName) {
+      const resolvedRecord = resolved as Record<string, unknown>;
+      const properties = isRecord(resolvedRecord.properties)
+        ? resolvedRecord.properties
+        : undefined;
+      const propSchema = properties ? properties[discriminatorPropName] : undefined;
+
+      if (isRecord(propSchema) && Array.isArray(propSchema.enum) && propSchema.enum.length > 0) {
+        label = String(propSchema.enum[0]);
+      }
+    }
+
+    alternatives.push({ label, schema: resolved });
+  }
+
+  return alternatives;
 }
 
 /* -------------------------------------------------------------------------- */

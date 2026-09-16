@@ -692,6 +692,66 @@
   padding-top: 0;
 }
 
+/* ---- Composite schema (oneOf / anyOf) ------------------------------------ */
+
+.pde-oas-composite-section {
+  margin-top: var(--pde-space-2);
+}
+
+.pde-oas-composite-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  padding: 2px 6px;
+  margin-left: -6px;
+  font-size: var(--pde-font-size-xs);
+  font-weight: 500;
+  color: var(--pde-color-text-secondary);
+  cursor: pointer;
+  border-radius: var(--pde-radius-sm);
+  font-family: inherit;
+  transition: color var(--pde-transition), background var(--pde-transition);
+}
+
+.pde-oas-composite-toggle:hover {
+  color: var(--pde-color-text-primary);
+  background: var(--pde-color-surface-hover);
+}
+
+.pde-oas-composite-toggle-icon {
+  font-size: 10px;
+  width: 10px;
+  display: inline-flex;
+  justify-content: center;
+}
+
+.pde-oas-composite-alternatives {
+  margin-top: var(--pde-space-2);
+  margin-left: var(--pde-space-3);
+  border-left: 2px solid var(--pde-color-border-subtle);
+  padding-left: var(--pde-space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--pde-space-3);
+}
+
+.pde-oas-composite-alternative-label {
+  font-size: var(--pde-font-size-xs);
+  font-weight: 600;
+  color: var(--pde-color-accent);
+  font-family: var(--pde-font-mono);
+  margin-bottom: var(--pde-space-1);
+}
+
+.pde-oas-composite-alternative-body {
+  background: var(--pde-color-surface-subtle);
+  border: 1px solid var(--pde-color-border-subtle);
+  border-radius: var(--pde-radius-md);
+  padding: var(--pde-space-2) var(--pde-space-3);
+}
+
 .pde-oas-field-row-head {
   display: flex;
   align-items: center;
@@ -869,8 +929,8 @@
 }
 
 .pde-oas-status-success {
-  background: var(--pde-method-get-bg);
-  color: var(--pde-method-get-text);
+  background: #1a7f37;
+  color: #ffffff;
 }
 
 .pde-oas-status-error {
@@ -942,15 +1002,17 @@
   overflow: hidden;
 }
 
-.pde-oas-language-selectors .chakra-select__trigger {
+.pde-oas-language-selectors .chakra-select__trigger,
+.pde-oas-language-selectors [data-part="trigger"] {
   background: var(--pde-color-surface);
   border-color: var(--pde-color-border-default);
   color: var(--pde-color-text-primary);
   font-size: 12px;
-  min-width: 72px;
-  max-width: 140px;
+  min-width: 64px;
+  max-width: 120px;
   height: 24px;
   border-radius: var(--pde-radius-md);
+  padding: 0 8px;
 }
 
 .pde-oas-language-selectors .chakra-select__trigger:hover {
@@ -1267,14 +1329,18 @@
   font-family: var(--pde-font-mono);
   font-size: var(--pde-font-size-xs);
   height: 28px;
-  min-width: 200px;
-  max-width: 360px;
+  min-width: 0;
+  width: 100%;
   border-radius: var(--pde-radius-md);
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .pde-oas-server-select [data-part="trigger"] [data-part="value-text"] {
-  overflow: visible;
-  text-overflow: clip;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
 }
 
 .pde-oas-server-select [data-part="trigger"]:hover {
