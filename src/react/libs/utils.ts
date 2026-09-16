@@ -234,3 +234,48 @@ export function buildOperationTreeIndex(
 
   return index;
 }
+
+/**
+ * Returns the operations ordered exactly as they appear in the documentation
+ * tree (depth-first, following tag grouping and in-tag ordering).
+ *
+ * Operations that are not present in the tree (e.g. when tree building
+ * skipped them) are appended at the end in their original document order so
+ * nothing is lost. This guarantees the rendered content sections line up
+ * 1:1 with the left-hand navigation.
+ */
+export function buildOrderedOperations(
+  tree: TreeNode[],
+  operations: OasOperation[],
+): OasOperation[] {
+  const seen = new Set<string>();
+  const ordered: OasOperation[] = [];
+
+  const pushOperation = (operation: OasOperation | undefined): void => {
+    if (!operation || seen.has(operation.id)) {
+      return;
+    }
+
+    seen.add(operation.id);
+    ordered.push(operation);
+  };
+
+  walkTree(tree, (node) => {
+    const metadata = node.metadata as DocNodeMetadata | undefined;
+
+    if (metadata?.kind !== "operation") {
+      return;
+    }
+
+    pushOperation(resolveOperationFromNode(operations, node));
+  });
+
+  // Append any operations the tree did not surface, preserving original order.
+  for (const operation of operations) {
+    if (!seen.has(operation.id)) {
+      ordered.push(operation);
+    }
+  }
+
+  return ordered;
+}

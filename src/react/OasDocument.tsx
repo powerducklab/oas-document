@@ -1,8 +1,6 @@
 import "@powerduck/tree/react/index.css";
-
 import "@powerduck/md-editor/dist/style.css";
-
-import "./OasDocument.css";
+import "./OasDocument.css"; 
 
 import {
   forwardRef,
@@ -67,14 +65,13 @@ import type { TreeHandle } from "@powerduck/tree/react";
 import type { TreeNode } from "@powerduck/tree";
 
 import { FiMenu } from "react-icons/fi";
-import { HiOutlineExternalLink } from "react-icons/hi";
 import {
   AiOutlineMinusCircle,
   AiOutlinePlusCircle,
 } from "react-icons/ai";
 import { IoMdClose } from "react-icons/io";
 import { IoMdCode } from "react-icons/io";
-import { IoSunny, IoMoon } from "react-icons/io5";
+import { LuMoon, LuSun } from "react-icons/lu";
 
 import { useOasDocument } from "./hooks/useOasDocument";
 
@@ -87,6 +84,7 @@ import type {
 
 import {
   buildOperationTreeIndex,
+  buildOrderedOperations,
   cn,
   copyToClipboard,
   resolveOperationFromNode,
@@ -603,8 +601,64 @@ const CopyButton = memo(function CopyButton({
 });
 
 /* ==========================================================================
-   Empty / loading / error states
+   Click-to-copy field name (parameter / schema property)
    ========================================================================== */
+
+type FieldNameProps = {
+  name: string;
+};
+
+const FieldName = memo(function FieldName({ name }: FieldNameProps) {
+  const [copied, setCopied] = useState(false);
+
+  const timerRef = useRef<number | null>(null);
+
+  useEffect(
+    () => () => {
+      if (timerRef.current !== null) {
+        window.clearTimeout(timerRef.current);
+      }
+    },
+    [],
+  );
+
+  const handleClick = useCallback(async () => {
+    const ok = await copyToClipboard(name);
+
+    if (!ok) {
+      return;
+    }
+
+    setCopied(true);
+
+    if (timerRef.current !== null) {
+      window.clearTimeout(timerRef.current);
+    }
+
+    timerRef.current = window.setTimeout(() => setCopied(false), 1000);
+  }, [name]);
+
+  return (
+    <code
+      className={cn(
+        "pde-oas-field-name",
+        copied && "pde-oas-field-name-copied",
+      )}
+      title="Click to copy"
+      onClick={handleClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          void handleClick();
+        }
+      }}
+    >
+      {name}
+    </code>
+  );
+});
 
 function EmptyState({
   title,
@@ -754,7 +808,7 @@ function SchemaFieldRow({ field, document }: SchemaFieldRowProps) {
   return (
     <div className="pde-oas-field-row">
       <div className="pde-oas-field-row-head">
-        <code className="pde-oas-field-name">{field.name}</code>
+        <FieldName name={field.name} />
         <span className="pde-oas-field-type">
           {getSchemaTypeLabel(schema)}
         </span>
@@ -804,7 +858,7 @@ function ParameterRow({ parameter, document }: ParameterRowProps) {
   return (
     <div className="pde-oas-field-row">
       <div className="pde-oas-field-row-head">
-        <code className="pde-oas-field-name">{parameter.name}</code>
+        <FieldName name={parameter.name} />
         <span className="pde-oas-field-type">
           {schema ? getSchemaTypeLabel(schema) : "unknown"}
         </span>
@@ -1069,19 +1123,24 @@ function CodeExamplesPanel({
     [languageGroups],
   );
 
-  const defaultLanguage = languages.includes("curl") ? "curl" : languages[0] ?? "curl";
+  // Prefer shell/curl (generates curl commands); fall back to first available.
+  const defaultLanguage = languages.includes("shell")
+    ? "shell"
+    : languages[0] ?? "shell";
   const defaultClients = languageGroups.get(defaultLanguage) ?? [];
-  const defaultClient = defaultClients[0] ?? "curl";
+  const defaultClient = defaultClients.includes("curl")
+    ? "curl"
+    : defaultClients[0] ?? "";
 
   const [language, setLanguage] = useState(defaultLanguage);
   const [client, setClient] = useState(defaultClient);
 
   // Reset when the language groups change (e.g. new document loaded).
   useEffect(() => {
-    const lang = languages.includes("curl") ? "curl" : languages[0] ?? "curl";
+    const lang = languages.includes("shell") ? "shell" : languages[0] ?? "shell";
     const clients = languageGroups.get(lang) ?? [];
     setLanguage(lang);
-    setClient(clients[0] ?? "curl");
+    setClient(clients.includes("curl") ? "curl" : clients[0] ?? "");
   }, [languageGroups, languages]);
 
   const availableClients = languageGroups.get(language) ?? [];
@@ -1128,7 +1187,7 @@ function CodeExamplesPanel({
     }
   }, [document, operation.path, operation.method, language, client, serverUrl]);
 
-  const responseCode = useMemo(() => {
+  const responseBody = useMemo(() => {
     const entry = responseEntries.find(([status]) => status === activeStatus);
 
     if (!entry) {
@@ -1152,64 +1211,41 @@ function CodeExamplesPanel({
     return stringifyExample(buildExampleValue(rawSchema, document));
   }, [responseEntries, activeStatus, document]);
 
-  const endpointUrl = `${serverUrl.replace(/\/$/, "")}${operation.path}`;
-
-  const openEndpoint = useCallback(() => {
-    if (typeof window !== "undefined") {
-      window.open(endpointUrl, "_blank", "noreferrer");
-    }
-  }, [endpointUrl]);
-
   return (
     <div className="pde-oas-code-stack">
       {/* Request card (dark) */}
       <div className="pde-oas-request-card">
         <div className="pde-oas-request-card-header">
-          <div className="pde-oas-request-card-title">
-            <OperationMethodLabel
-              method={operation.method}
-              className="pde-oas-method-label-on-dark"
-            />
-            <code className="pde-oas-code-card-path">{operation.path}</code>
+          <div className="pde-oas-language-selectors">
+            <select
+              value={language}
+              onChange={(event) => handleLanguageChange(event.target.value)}
+              className="pde-oas-language-select"
+              aria-label="Code language"
+            >
+              {languages.map((lang) => (
+                <option key={lang} value={lang}>
+                  {lang}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={client}
+              onChange={(event) => setClient(event.target.value)}
+              className="pde-oas-language-select"
+              aria-label="HTTP client"
+            >
+              {availableClients.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="pde-oas-request-card-actions">
-            <div className="pde-oas-language-selectors">
-              <select
-                value={language}
-                onChange={(event) => handleLanguageChange(event.target.value)}
-                className="pde-oas-language-select"
-                aria-label="Code language"
-              >
-                {languages.map((lang) => (
-                  <option key={lang} value={lang}>
-                    {lang}
-                  </option>
-                ))}
-              </select>
-
-              <select
-                value={client}
-                onChange={(event) => setClient(event.target.value)}
-                className="pde-oas-language-select"
-                aria-label="HTTP client"
-              >
-                {availableClients.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <button
-              type="button"
-              aria-label="Open endpoint URL in a new tab"
-              className="pde-oas-code-icon-button"
-              onClick={openEndpoint}
-            >
-              <HiOutlineExternalLink />
-            </button>
+            <CopyButton text={requestCode} variant="dark" />
 
             {onRequestClose ? (
               <button
@@ -1236,43 +1272,42 @@ function CodeExamplesPanel({
               </CodeBlock.Code>
             </CodeBlock.Header>
           </CodeBlock.Root>
-          <CopyButton text={requestCode} variant="dark" />
         </div>
       </div>
 
-      {/* Response card (light) */}
-      {responseCode ? (
-        <div className="pde-oas-response-card">
-          <div className="pde-oas-response-card-header">
-            <span className="pde-oas-response-card-label">Response</span>
+      {/* Response card (light) — always rendered so status tabs stay usable */}
+      <div className="pde-oas-response-card">
+        <div className="pde-oas-response-card-header">
+          <span className="pde-oas-response-card-label">Response</span>
 
-            <span className="pde-oas-response-status-tabs">
-              {responseEntries.map(([status]) => (
-                <button
-                  key={status}
-                  type="button"
+          <span className="pde-oas-response-status-tabs">
+            {responseEntries.map(([status]) => (
+              <button
+                key={status}
+                type="button"
+                className={cn(
+                  "pde-oas-response-status-tab",
+                  status === activeStatus &&
+                    "pde-oas-response-status-tab-active",
+                )}
+                onClick={() => setActiveStatus(status)}
+              >
+                <span
                   className={cn(
-                    "pde-oas-response-status-tab",
-                    status === activeStatus &&
-                      "pde-oas-response-status-tab-active",
+                    "pde-oas-response-status-dot",
+                    getResponseStatusClass(status),
                   )}
-                  onClick={() => setActiveStatus(status)}
-                >
-                  <span
-                    className={cn(
-                      "pde-oas-response-status-dot",
-                      getResponseStatusClass(status),
-                    )}
-                  />
-                  {getResponseStatusLabel(status)}
-                </button>
-              ))}
-            </span>
-          </div>
+                />
+                {getResponseStatusLabel(status)}
+              </button>
+            ))}
+          </span>
+        </div>
 
+        {responseBody ? (
           <div className="pde-oas-code-block-light">
             <CodeBlock.Root
-              code={responseCode}
+              code={responseBody}
               language="json"
               colorScheme="light"
             >
@@ -1282,10 +1317,16 @@ function CodeExamplesPanel({
                 </CodeBlock.Code>
               </CodeBlock.Header>
             </CodeBlock.Root>
-            <CopyButton text={responseCode} variant="light" />
+            <CopyButton text={responseBody} variant="light" />
           </div>
-        </div>
-      ) : null}
+        ) : (
+          <div className="pde-oas-code-block-light pde-oas-code-block-empty">
+            <p className="pde-oas-empty-section-text">
+              No response body defined
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -1518,7 +1559,7 @@ function Header({
             className="pde-oas-theme-toggle"
             onClick={onToggleTheme}
           >
-            {theme === "dark" ? <IoSunny /> : <IoMoon />}
+            {theme === "dark" ? <LuSun size={16} /> : <LuMoon size={16} />}
           </button>
         ) : null}
       </div>
@@ -1541,7 +1582,7 @@ function OasDocumentImpl(
     theme: initialTheme = "light",
     header,
     showTree = true,
-    treeWidth = 280,
+    treeWidth = 320,
   }: OasDocumentProps,
   ref: ForwardedRef<OasDocumentHandle>,
 ) {
@@ -1615,6 +1656,12 @@ function OasDocumentImpl(
   /* ---- Operation -> tree node index (for scroll-spy locateNode) --------- */
   const operationTreeIndex = useMemo(
     () => buildOperationTreeIndex(tree, operations),
+    [tree, operations],
+  );
+
+  /* ---- Content sections ordered to match the left-hand tree ------------- */
+  const orderedOperations = useMemo(
+    () => buildOrderedOperations(tree, operations),
     [tree, operations],
   );
 
@@ -1918,7 +1965,7 @@ function OasDocumentImpl(
         ) : null}
       </div>
 
-      {operations.map((operation) => (
+      {orderedOperations.map((operation) => (
         <OperationSection
           key={operation.id}
           operation={operation}

@@ -270,19 +270,24 @@
 }
 
 .pde-oas-splitter-trigger {
-  width: 1px !important;
-  min-width: 1px !important;
-  max-width: 1px !important;
+  width: 8px !important;
+  min-width: 8px !important;
+  max-width: 8px !important;
+  margin: 0 -4px;
   padding: 0 !important;
   background: transparent !important;
   cursor: col-resize;
   position: relative;
   z-index: 10;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
 }
 
 .pde-oas-splitter-separator {
   width: 1px !important;
   min-width: 1px !important;
+  max-width: 1px !important;
   background: var(--pde-color-border-subtle);
   transition: background var(--pde-transition);
 }
@@ -366,7 +371,7 @@
   cursor: pointer;
   border-radius: var(--pde-radius-md);
   transition: color var(--pde-transition), background var(--pde-transition);
-  font-size: 18px;
+  padding: 0;
 }
 
 .pde-oas-theme-toggle:hover {
@@ -478,7 +483,7 @@
 
 .pde-oas-operation-section {
   display: grid;
-  grid-template-columns: 1fr 400px;
+  grid-template-columns: minmax(0, 1fr) minmax(380px, 480px);
   gap: var(--pde-space-10);
   padding: var(--pde-space-8) 0;
   border-top: 1px solid var(--pde-color-border-subtle);
@@ -487,7 +492,7 @@
 
 @media (max-width: 1200px) {
   .pde-oas-operation-section {
-    grid-template-columns: 1fr 360px;
+    grid-template-columns: minmax(0, 1fr) minmax(340px, 400px);
     gap: var(--pde-space-6);
   }
 }
@@ -662,6 +667,21 @@
   font-size: var(--pde-font-size-sm);
   font-weight: 600;
   color: var(--pde-color-text-primary);
+  cursor: pointer;
+  border-radius: var(--pde-radius-sm);
+  padding: 1px 6px;
+  margin-left: -6px;
+  transition: background var(--pde-transition), color var(--pde-transition);
+}
+
+.pde-oas-field-name:hover {
+  background: var(--pde-color-surface-hover);
+}
+
+.pde-oas-field-name-copied,
+.pde-oas-field-name-copied:hover {
+  color: var(--pde-color-accent);
+  background: var(--pde-color-surface-hover);
 }
 
 .pde-oas-field-type {
@@ -828,6 +848,9 @@
   overflow: hidden;
   background: var(--pde-color-code-bg);
   box-shadow: var(--pde-shadow-md);
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 120px);
 }
 
 .pde-oas-request-card-header {
@@ -836,35 +859,26 @@
   justify-content: space-between;
   padding: var(--pde-space-2) var(--pde-space-3);
   gap: var(--pde-space-2);
-  flex-wrap: wrap;
-}
-
-.pde-oas-request-card-title {
-  display: flex;
-  align-items: center;
-  gap: var(--pde-space-2);
-  min-width: 0;
-}
-
-.pde-oas-code-card-path {
-  font-family: var(--pde-font-mono);
-  font-size: var(--pde-font-size-xs);
-  color: #c9d1d9;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  flex-wrap: nowrap;
   white-space: nowrap;
+  overflow: hidden;
+  height: 38px;
+  flex-shrink: 0;
 }
 
 .pde-oas-request-card-actions {
   display: flex;
   align-items: center;
   gap: var(--pde-space-2);
+  flex-shrink: 0;
 }
 
 .pde-oas-language-selectors {
   display: flex;
   align-items: center;
   gap: var(--pde-space-1);
+  min-width: 0;
+  overflow: hidden;
 }
 
 .pde-oas-language-select {
@@ -876,6 +890,7 @@
   border-radius: var(--pde-radius-sm);
   cursor: pointer;
   font-family: inherit;
+  flex-shrink: 0;
 }
 
 .pde-oas-language-select option {
@@ -895,6 +910,7 @@
   cursor: pointer;
   border-radius: var(--pde-radius-sm);
   transition: color var(--pde-transition), background var(--pde-transition);
+  flex-shrink: 0;
 }
 
 .pde-oas-code-icon-button:hover {
@@ -912,11 +928,29 @@
 
 .pde-oas-code-block-dark {
   background: var(--pde-color-code-bg);
+  flex: 1 1 auto;
+  overflow-y: auto;
+  max-height: 60vh;
+  min-height: 0;
 }
 
 .pde-oas-code-block-light {
   background: var(--pde-color-code-surface);
   border-top: 1px solid var(--pde-color-code-border);
+}
+
+.pde-oas-code-block-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--pde-space-6) var(--pde-space-4);
+  min-height: 80px;
+}
+
+.pde-oas-code-block-empty .pde-oas-empty-section-text {
+  margin: 0;
+  color: var(--pde-color-text-tertiary);
+  font-size: var(--pde-font-size-sm);
 }
 
 .pde-oas-code-block-code {
