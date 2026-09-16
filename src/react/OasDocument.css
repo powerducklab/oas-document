@@ -699,24 +699,6 @@
   color: var(--pde-color-text-tertiary);
 }
 
-.pde-oas-field-badge {
-  font-size: var(--pde-font-size-xs);
-  color: var(--pde-color-text-tertiary);
-  background: var(--pde-color-surface-subtle);
-  padding: 1px 6px;
-  border-radius: var(--pde-radius-sm);
-}
-
-.pde-oas-field-badge-readonly {
-  color: var(--pde-color-info);
-  background: var(--pde-color-accent-bg);
-}
-
-.pde-oas-field-badge-writeonly {
-  color: var(--pde-color-warning);
-  background: var(--pde-color-surface-subtle);
-}
-
 .pde-oas-location-badge {
   font-size: var(--pde-font-size-xs);
   color: var(--pde-color-text-tertiary);

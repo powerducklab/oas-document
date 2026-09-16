@@ -32,10 +32,7 @@ import {
 import {
   getPrimaryMediaType,
   getSchemaDescription,
-  getSchemaExample,
-  getSchemaConstraints,
   getSchemaEnum,
-  getSchemaFormat,
   getSchemaTypeLabel,
   getProperty,
   getObjectProperty,
