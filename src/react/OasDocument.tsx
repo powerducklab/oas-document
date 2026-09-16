@@ -36,6 +36,7 @@ import {
   getSchemaTypeLabel,
   getCompositeAlternatives,
   getCompositeKind,
+  type CompositeAlternative,
   getProperty,
   getObjectProperty,
   isSchemaDeprecated,
@@ -874,6 +875,60 @@ function ExpandableChildFields({
   );
 }
 
+/* ==========================================================================
+   Composite schema tabs (oneOf / anyOf)
+   ========================================================================== */
+
+type CompositeSchemaTabsProps = {
+  alternatives: CompositeAlternative[];
+  document: OasRootDocument;
+  kind: "oneOf" | "anyOf";
+};
+
+function CompositeSchemaTabs({
+  alternatives,
+  document,
+  kind,
+}: CompositeSchemaTabsProps) {
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  if (alternatives.length === 0) {
+    return null;
+  }
+
+  const safeIndex = Math.min(activeIndex, alternatives.length - 1);
+  const active = alternatives[safeIndex];
+
+  return (
+    <div className="pde-oas-composite-tabs">
+      <div className="pde-oas-composite-tabs-header">
+        <span className="pde-oas-composite-tabs-kind">{kind}</span>
+        <div className="pde-oas-composite-tabs-list">
+          {alternatives.map((alt, index) => (
+            <button
+              key={`${alt.label}-${index}`}
+              type="button"
+              className={
+                index === safeIndex
+                  ? "pde-oas-composite-tab pde-oas-composite-tab-active"
+                  : "pde-oas-composite-tab"
+              }
+              onClick={() => setActiveIndex(index)}
+            >
+              {alt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="pde-oas-composite-tabs-content">
+        {active ? (
+          <SchemaBlock schema={active.schema} document={document} />
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 type SchemaFieldRowProps = {
   field: SchemaField;
   document: OasRootDocument;
@@ -997,7 +1052,6 @@ function getSchemaConstraintLabel(
 
 function SchemaFieldRow({ field, document }: SchemaFieldRowProps) {
   const [expanded, setExpanded] = useState(false);
-  const [compositeExpanded, setCompositeExpanded] = useState(false);
 
   const { schema } = field;
 
@@ -1037,33 +1091,12 @@ function SchemaFieldRow({ field, document }: SchemaFieldRowProps) {
         <Markdown className="pde-oas-field-description">{description}</Markdown>
       ) : null}
 
-      {compositeAlternatives.length > 0 ? (
-        <div className="pde-oas-composite-section">
-          <button
-            type="button"
-            className="pde-oas-composite-toggle"
-            onClick={() => setCompositeExpanded((value) => !value)}
-          >
-            <span className="pde-oas-composite-toggle-icon">
-              {compositeExpanded ? "\u25BE" : "\u25B8"}
-            </span>
-            <span>{compositeKind} — {compositeAlternatives.length} option{compositeAlternatives.length > 1 ? "s" : ""}</span>
-          </button>
-          {compositeExpanded ? (
-            <div className="pde-oas-composite-alternatives">
-              {compositeAlternatives.map((alternative, index) => (
-                <div key={`${alternative.label}-${index}`} className="pde-oas-composite-alternative">
-                  <div className="pde-oas-composite-alternative-label">
-                    {alternative.label}
-                  </div>
-                  <div className="pde-oas-composite-alternative-body">
-                    <SchemaBlock schema={alternative.schema} document={document} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : null}
-        </div>
+      {compositeAlternatives.length > 0 && compositeKind && compositeKind !== "allOf" ? (
+        <CompositeSchemaTabs
+          alternatives={compositeAlternatives}
+          document={document}
+          kind={compositeKind}
+        />
       ) : null}
 
       {childFields.length > 0 ? (
@@ -1163,11 +1196,30 @@ function SchemaBlock({ schema, document }: SchemaBlockProps) {
     [resolved, document],
   );
 
+  const compositeKind = getCompositeKind(resolved);
+  const compositeAlternatives = useMemo(
+    () =>
+      compositeKind && compositeKind !== "allOf" && resolved
+        ? getCompositeAlternatives(resolved, document)
+        : [],
+    [resolved, document, compositeKind],
+  );
+
   if (!resolved) {
     return (
       <p className="pde-oas-empty-section-text">
         This schema could not be resolved.
       </p>
+    );
+  }
+
+  if (compositeKind && compositeKind !== "allOf" && compositeAlternatives.length > 0) {
+    return (
+      <CompositeSchemaTabs
+        alternatives={compositeAlternatives}
+        document={document}
+        kind={compositeKind}
+      />
     );
   }
 
@@ -1550,7 +1602,7 @@ function CodeExamplesPanel({
         </div>
 
         <div className="pde-oas-code-block-request">
-          <ScrollArea.Root variant="hover" h="320px">
+          <ScrollArea.Root variant="hover">
             <ScrollArea.Viewport>
               <HighlightedCode
                 code={requestCode}
@@ -1602,7 +1654,7 @@ function CodeExamplesPanel({
                   code={responseBody}
                   language="json"
                   theme={theme}
-                />111
+                />
               </ScrollArea.Viewport>
               <ScrollArea.Scrollbar orientation="vertical">
                 <ScrollArea.Thumb />

@@ -148,6 +148,29 @@
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
   --shadow-lg: var(--pde-shadow-md);
+
+  /* ---- md-editor internal variables (--_*) for standalone rendered content ---- */
+  --_surface: var(--pde-color-surface);
+  --_surface-subtle: var(--pde-color-surface-subtle);
+  --_surface-hover: var(--pde-color-surface-hover);
+  --_surface-active: var(--pde-color-surface-selected);
+  --_text-primary: var(--pde-color-text-primary);
+  --_text-secondary: var(--pde-color-text-secondary);
+  --_text-tertiary: var(--pde-color-text-tertiary);
+  --_accent: var(--pde-color-accent);
+  --_accent-bg: var(--pde-color-accent-bg);
+  --_border-subtle: var(--pde-color-border-subtle);
+  --_border-default: var(--pde-color-border-default);
+  --_radius-md: var(--pde-radius-md);
+  --_radius-lg: var(--pde-radius-lg);
+  --_space-1: var(--pde-space-1);
+  --_space-2: var(--pde-space-2);
+  --_space-3: var(--pde-space-3);
+  --_transition-fast: var(--pde-transition);
+  --_font-ui: var(--pde-font-ui);
+  --_font-mono: var(--pde-font-mono);
+  --_font-size-sm: var(--pde-font-size-sm);
+  --_font-size-xs: var(--pde-font-size-xs);
 }
 
 /* ==========================================================================
@@ -247,6 +270,61 @@
   --color-info: var(--pde-color-info);
   --color-info-soft: var(--pde-color-surface-subtle);
   --color-dynamic: var(--pde-color-accent);
+
+  /* ---- md-editor internal variables (--_*) dark ---- */
+  --_surface: var(--pde-color-surface);
+  --_surface-subtle: var(--pde-color-surface-subtle);
+  --_surface-hover: var(--pde-color-surface-hover);
+  --_surface-active: var(--pde-color-surface-selected);
+  --_text-primary: var(--pde-color-text-primary);
+  --_text-secondary: var(--pde-color-text-secondary);
+  --_text-tertiary: var(--pde-color-text-tertiary);
+  --_accent: var(--pde-color-accent);
+  --_accent-bg: var(--pde-color-accent-bg);
+  --_border-subtle: var(--pde-color-border-subtle);
+  --_border-default: var(--pde-color-border-default);
+  --_radius-md: var(--pde-radius-md);
+  --_radius-lg: var(--pde-radius-lg);
+  --_space-1: var(--pde-space-1);
+  --_space-2: var(--pde-space-2);
+  --_space-3: var(--pde-space-3);
+  --_transition-fast: var(--pde-transition);
+  --_font-ui: var(--pde-font-ui);
+  --_font-mono: var(--pde-font-mono);
+  --_font-size-sm: var(--pde-font-size-sm);
+  --_font-size-xs: var(--pde-font-size-xs);
+}
+
+/* ---- Dark mode: github-markdown-css variables (table, hr, etc.) ---------- */
+.pde-oas-root[data-theme="dark"] .markdown-body {
+  --bgColor-default: #161b22;
+  --bgColor-muted: #1c2128;
+  --fgColor-default: #e6edf3;
+  --fgColor-muted: #9198a1;
+  --borderColor-default: #30363d;
+  --borderColor-muted: #21262d;
+  --danger-fg: #f85149;
+  --success-fg: #3fb950;
+  --attention-fg: #d29922;
+  --accent-fg: #58a6ff;
+}
+
+.pde-oas-root[data-theme="dark"] .markdown-body hr {
+  border-bottom-color: var(--pde-color-border-default);
+  background: transparent;
+}
+
+/* ---- Hide macOS traffic-light dots in md-editor code blocks (not wanted in docs) ---- */
+.pde-oas-root .md-editor-codeblock-lights {
+  display: none;
+}
+
+.pde-oas-root .md-editor-codeblock-lang {
+  color: var(--pde-color-text-tertiary);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 /* ==========================================================================
@@ -692,64 +770,71 @@
   padding-top: 0;
 }
 
-/* ---- Composite schema (oneOf / anyOf) ------------------------------------ */
+/* ---- Composite schema tabs (oneOf / anyOf) -------------------------------- */
 
-.pde-oas-composite-section {
+.pde-oas-composite-tabs {
   margin-top: var(--pde-space-2);
+  border: 1px solid var(--pde-color-border-subtle);
+  border-radius: var(--pde-radius-md);
+  overflow: hidden;
 }
 
-.pde-oas-composite-toggle {
-  display: inline-flex;
+.pde-oas-composite-tabs-header {
+  display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--pde-space-2);
+  padding: 0 var(--pde-space-2);
+  background: var(--pde-color-surface-subtle);
+  border-bottom: 1px solid var(--pde-color-border-subtle);
+  min-height: 32px;
+}
+
+.pde-oas-composite-tabs-kind {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--pde-color-text-tertiary);
+  flex-shrink: 0;
+}
+
+.pde-oas-composite-tabs-list {
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+  flex: 1;
+  min-width: 0;
+}
+
+.pde-oas-composite-tab {
   background: none;
   border: none;
-  padding: 2px 6px;
-  margin-left: -6px;
+  padding: 4px 10px;
   font-size: var(--pde-font-size-xs);
   font-weight: 500;
   color: var(--pde-color-text-secondary);
   cursor: pointer;
   border-radius: var(--pde-radius-sm);
-  font-family: inherit;
+  font-family: var(--pde-font-mono);
+  white-space: nowrap;
   transition: color var(--pde-transition), background var(--pde-transition);
 }
 
-.pde-oas-composite-toggle:hover {
+.pde-oas-composite-tab:hover {
   color: var(--pde-color-text-primary);
   background: var(--pde-color-surface-hover);
 }
 
-.pde-oas-composite-toggle-icon {
-  font-size: 10px;
-  width: 10px;
-  display: inline-flex;
-  justify-content: center;
-}
-
-.pde-oas-composite-alternatives {
-  margin-top: var(--pde-space-2);
-  margin-left: var(--pde-space-3);
-  border-left: 2px solid var(--pde-color-border-subtle);
-  padding-left: var(--pde-space-3);
-  display: flex;
-  flex-direction: column;
-  gap: var(--pde-space-3);
-}
-
-.pde-oas-composite-alternative-label {
-  font-size: var(--pde-font-size-xs);
+.pde-oas-composite-tab-active {
+  color: var(--pde-color-text-primary);
+  background: var(--pde-color-surface);
   font-weight: 600;
-  color: var(--pde-color-accent);
-  font-family: var(--pde-font-mono);
-  margin-bottom: var(--pde-space-1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
 }
 
-.pde-oas-composite-alternative-body {
-  background: var(--pde-color-surface-subtle);
-  border: 1px solid var(--pde-color-border-subtle);
-  border-radius: var(--pde-radius-md);
+.pde-oas-composite-tabs-content {
   padding: var(--pde-space-2) var(--pde-space-3);
+  background: var(--pde-color-surface);
 }
 
 .pde-oas-field-row-head {
