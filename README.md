@@ -257,6 +257,14 @@ npm run preview     # Local responsive UI preview
 npm run benchmark   # Navigation lookup benchmark
 ```
 
+## Links
+
+- [Official Website](https://www.powerduck.com/opensource/oas-document.html)
+- [Documentation](https://www.powerduck.com/docs/oas-document/introduction/)
+- [Live Demo](https://www.powerduck.com/demo/oas-document)
+- [GitHub](https://github.com/powerducklab/oas-document)
+- [npm](https://www.npmjs.com/package/@powerduck/oas-document)
+
 ## License
 
 MIT © [powerduck](https://www.powerduck.com)
