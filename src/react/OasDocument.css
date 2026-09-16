@@ -178,11 +178,11 @@
    ========================================================================== */
 
 .pde-oas-root[data-theme="dark"] {
-  --pde-color-canvas: #0d1117;
-  --pde-color-surface: #161b22;
-  --pde-color-surface-subtle: #1c2128;
-  --pde-color-surface-hover: #22272e;
-  --pde-color-surface-selected: #2d333b;
+  --pde-color-canvas: #161b22;
+  --pde-color-surface: #1c2128;
+  --pde-color-surface-subtle: #22272e;
+  --pde-color-surface-hover: #2d333b;
+  --pde-color-surface-selected: #373e47;
 
   --pde-color-text-primary: #e6edf3;
   --pde-color-text-secondary: #9198a1;
@@ -1093,18 +1093,19 @@
   color: var(--pde-color-text-primary);
   font-size: 12px;
   min-width: 64px;
-  max-width: 120px;
-  height: 24px;
+  max-width: 140px;
+  height: 26px;
   border-radius: var(--pde-radius-md);
-  padding: 0 8px;
+  padding: 0 8px 0 10px;
+}
+
+.pde-oas-language-selectors [data-part="indicator"] {
+  color: var(--pde-color-text-tertiary);
+  margin-left: 2px;
 }
 
 .pde-oas-language-selectors .chakra-select__trigger:hover {
   background: var(--pde-color-surface-hover);
-}
-
-.pde-oas-language-selectors .chakra-select__indicator {
-  color: var(--pde-color-text-tertiary);
 }
 
 /* Select dropdown (portalled inline, inherits theme variables) */
@@ -1939,4 +1940,80 @@
   .pde-oas-operation-title {
     font-size: 20px;
   }
+}
+
+/* ==========================================================================
+   Tree method badge overrides (more saturated than tree defaults)
+   ========================================================================== */
+
+.pde-oas-root .pde-tree-methodGet {
+  color: #1a7f37;
+  background: #dafbe1;
+}
+
+.pde-oas-root .pde-tree-methodPost {
+  color: #0969da;
+  background: #ddf4ff;
+}
+
+.pde-oas-root .pde-tree-methodPut {
+  color: #9a6700;
+  background: #fff8c5;
+}
+
+.pde-oas-root .pde-tree-methodPatch {
+  color: #8250df;
+  background: #fbefff;
+}
+
+.pde-oas-root .pde-tree-methodDelete {
+  color: #cf222e;
+  background: #ffebe9;
+}
+
+.pde-oas-root .pde-tree-methodOther {
+  color: #59636e;
+  background: #eaeef2;
+}
+
+.pde-oas-root[data-theme="dark"] .pde-tree-methodGet {
+  color: #3fb950;
+  background: rgba(63, 185, 80, 0.15);
+}
+
+.pde-oas-root[data-theme="dark"] .pde-tree-methodPost {
+  color: #58a6ff;
+  background: rgba(56, 139, 253, 0.15);
+}
+
+.pde-oas-root[data-theme="dark"] .pde-tree-methodPut {
+  color: #d29922;
+  background: rgba(187, 128, 9, 0.15);
+}
+
+.pde-oas-root[data-theme="dark"] .pde-tree-methodPatch {
+  color: #bc8cff;
+  background: rgba(163, 113, 247, 0.15);
+}
+
+.pde-oas-root[data-theme="dark"] .pde-tree-methodDelete {
+  color: #f85149;
+  background: rgba(248, 81, 73, 0.15);
+}
+
+.pde-oas-root[data-theme="dark"] .pde-tree-methodOther {
+  color: #8b949e;
+  background: rgba(139, 148, 158, 0.15);
+}
+
+/* ==========================================================================
+   Select trigger: ensure dropdown indicator is visible
+   ========================================================================== */
+
+.pde-oas-root [data-scope="select"] [data-part="indicator"] {
+  color: var(--pde-color-text-tertiary);
+}
+
+.pde-oas-root [data-scope="select"] [data-part="trigger"] {
+  min-width: auto;
 }

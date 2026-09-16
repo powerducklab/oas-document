@@ -467,6 +467,17 @@ function buildExampleValue(
     return resolved.enum[0];
   }
 
+  /* oneOf / anyOf: pick the first alternative for example building. */
+  const oneOf = resolved.oneOf as unknown;
+  if (Array.isArray(oneOf) && oneOf.length > 0) {
+    return buildExampleValue(oneOf[0], document, depth + 1);
+  }
+
+  const anyOf = resolved.anyOf as unknown;
+  if (Array.isArray(anyOf) && anyOf.length > 0) {
+    return buildExampleValue(anyOf[0], document, depth + 1);
+  }
+
   const type = resolved.type as string | undefined;
 
   if (type === "array") {
@@ -1969,6 +1980,41 @@ function OasDocumentImpl(
   const [isNavOpen, setNavOpen] = useState(false);
   const [isCodeOpen, setCodeOpen] = useState(false);
 
+  /* ---- Sidebar width: localStorage persistence ------------------------- */
+  const STORAGE_KEY = "pde-oas-sidebar-width";
+
+  const [resolvedTreeWidth, setResolvedTreeWidth] = useState(() => {
+    if (treeWidth !== undefined) return treeWidth;
+    if (typeof window === "undefined") return 340;
+    try {
+      const stored = window.localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const parsed = Number.parseInt(stored, 10);
+        if (parsed >= 200 && parsed <= 480) return parsed;
+      }
+    } catch {
+      /* localStorage unavailable */
+    }
+    return 340;
+  });
+
+  const handleSplitterSizeChange = useCallback(
+    (details: { size: number[] }) => {
+      const first = details.size[0];
+      if (first === undefined) return;
+      const px = first;
+      if (Number.isFinite(px) && px >= 200 && px <= 480) {
+        setResolvedTreeWidth(px);
+        try {
+          window.localStorage.setItem(STORAGE_KEY, String(px));
+        } catch {
+          /* localStorage unavailable */
+        }
+      }
+    },
+    [],
+  );
+
   const {
     document,
     loading,
@@ -2349,7 +2395,7 @@ function OasDocumentImpl(
         className={rootClassName}
         style={{
           ...style,
-          ["--sidebar-width" as string]: `${treeWidth}px`,
+          ["--sidebar-width" as string]: `${resolvedTreeWidth}px`,
         }}
         data-theme={theme}
       >
@@ -2414,7 +2460,8 @@ function OasDocumentImpl(
       {showTree && !isTablet ? (
         <Splitter.Root
           orientation="horizontal"
-          defaultSize={[`${treeWidth}px`]}
+          defaultSize={[`${resolvedTreeWidth}px`]}
+          onResizeEnd={handleSplitterSizeChange}
           panels={[
             { id: "pde-oas-sidebar", minSize: "200px", maxSize: "480px" },
             { id: "pde-oas-content" },

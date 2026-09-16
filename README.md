@@ -15,7 +15,8 @@ Built on top of [`@powerduck/openapi-parser`](https://www.npmjs.com/package/@pow
 - **Scroll-spy navigation** — IntersectionObserver tracks visible operations and auto-locates them in the tree
 - **Markdown rendering** — operation descriptions and field docs rendered via `@powerduck/md-editor` (code highlighting, tips admonitions)
 - **Multi-language code examples** — generated via `@powerduck/openapi-codegen` (cURL, JavaScript/fetch, JavaScript/axios, Python/requests, Go), with response preview
-- **Schema exploration** — nested property tables with expand/collapse, type labels, required indicators
+- **Schema exploration** — nested property tables with expand/collapse, type labels, required indicators, constraint badges (enum, min/max, pattern, format), and oneOf/anyOf rendered as switchable tabs
+- **Server selector** — automatic server URL switcher with variable resolution
 - **Responsive** — sidebar collapses to overlay on tablet/mobile, code panel moves to slide-out drawer
 - **Type-safe** — full TypeScript types, zero `any` in public API
 - **Robust** — null-safe, circular reference detection, memoized rendering
@@ -75,7 +76,7 @@ export default function App() {
     ],
     showThemeToggle: true,
   }}
-  treeWidth={280}
+  treeWidth={340}
 />
 ```
 
@@ -142,7 +143,7 @@ if (result.error) {
 | `theme` | `"light" \| "dark"` | `"light"` | Initial color theme. The root element receives `data-theme`. |
 | `header` | `OasDocumentHeaderConfig` | — | Header configuration (logo, title, nav items, theme toggle). |
 | `showTree` | `boolean` | `true` | Whether to show the sidebar tree. |
-| `treeWidth` | `number` | `280` | Sidebar width in pixels. |
+| `treeWidth` | `number` | `340` | Sidebar width in pixels. When omitted, width is restored from `localStorage` (key: `pde-oas-sidebar-width`); manual drag-resize saves automatically. Range: 200–480. |
 
 ### `OasDocumentHeaderConfig`
 
