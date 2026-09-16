@@ -1570,8 +1570,8 @@ function OasDocumentImpl(
 
   const [resolvedTreeWidth, setResolvedTreeWidth] = useState(() =>
     treeWidth !== undefined && Number.isFinite(treeWidth)
-      ? Math.min(480, Math.max(200, treeWidth))
-      : 280,
+      ? Math.min(480, Math.max(240, treeWidth))
+      : 340,
   );
 
   const handleSplitterSizeChange = useCallback(
@@ -1616,7 +1616,7 @@ function OasDocumentImpl(
     }
     try {
       const stored = Number(window.localStorage.getItem(STORAGE_KEY));
-      setResolvedTreeWidth(stored >= 200 && stored <= 480 ? stored : 280);
+      setResolvedTreeWidth(stored >= 240 && stored <= 480 ? stored : 340);
     } catch { setResolvedTreeWidth(280); }
   }, [treeWidth]);
 

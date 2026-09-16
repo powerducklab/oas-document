@@ -90,7 +90,19 @@ export function useOasDocument(
   const [selectedOperationId, setSelectedOperationId] = useState<
     string | undefined
   >(defaultOperationId);
-  const [theme, setTheme] = useState<"light" | "dark">(initialTheme);
+  const [theme, setTheme] = useState<"light" | "dark">(() => {
+    try {
+      const stored = window.localStorage.getItem("pde-oas-theme");
+      if (stored === "light" || stored === "dark") return stored;
+    } catch { /* localStorage unavailable */ }
+    return initialTheme;
+  });
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem("pde-oas-theme", theme);
+    } catch { /* localStorage unavailable */ }
+  }, [theme]);
 
   /* ---- Load / upgrade the document -------------------------------------- */
   useEffect(() => {

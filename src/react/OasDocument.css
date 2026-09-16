@@ -1013,6 +1013,18 @@
   border-radius: 50%;
 }
 
+.pde-oas-response-status-dot.pde-oas-status-success {
+  background: #3fb950;
+}
+
+.pde-oas-response-status-dot.pde-oas-status-error {
+  background: #f85149;
+}
+
+.pde-oas-response-status-dot.pde-oas-status-default {
+  background: #8b949e;
+}
+
 /* ==========================================================================
    Server selector
    ========================================================================== */
@@ -1436,6 +1448,7 @@
 .pde-oas-root .markdown-body table th {
   background: var(--pde-color-surface-subtle);
   color: var(--pde-color-text-primary);
+  border-color: var(--pde-color-border-default);
 }
 
 .pde-oas-root .markdown-body table td {
@@ -1450,6 +1463,7 @@
 
 .pde-oas-root .markdown-body hr {
   border-bottom-color: var(--pde-color-border-subtle);
+  opacity: 0.5;
 }
 
 .pde-oas-root .markdown-body ::marker {
