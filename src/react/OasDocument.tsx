@@ -981,7 +981,14 @@ function ParameterRow({ parameter, document }: ParameterRowProps) {
     [schema, document],
   );
 
-  const constraints = getSchemaConstraintLabel(schema);
+  const schemaConstraints = getSchemaConstraintLabel(schema);
+  const paramDeprecated =
+    (parameter as Record<string, unknown>).deprecated === true;
+  const constraints = paramDeprecated
+    ? schemaConstraints
+      ? `${schemaConstraints} deprecated`
+      : "deprecated"
+    : schemaConstraints;
 
   return (
     <div className="pde-oas-field-row">
