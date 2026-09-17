@@ -83,6 +83,8 @@ export interface OasDocumentProps {
    * `data-theme` and all colors resolve through CSS variables.
    */
   theme?: "light" | "dark";
+  /** Follow an embedding application theme without reading the local theme preference. */
+  controlledTheme?: "light" | "dark";
 
   /**
    * Top header configuration (logo, title, navigation, theme toggle).

@@ -1926,3 +1926,21 @@
 @media (prefers-reduced-motion: reduce) {
   .pde-oas-theme-track, .pde-oas-theme-thumb { transition: none; }
 }
+
+/* Embedded desktop panes size code samples against their own available width. */
+.pde-oas-main-region { container-type: inline-size; }
+@container (max-width: 900px) {
+  .pde-oas-root .pde-oas-operation-section { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+  .pde-oas-root .pde-oas-content { padding-inline: 24px; }
+  .pde-oas-root .pde-oas-code-column { position: static; min-width: 0; }
+  .pde-oas-root .pde-oas-code-sticky { max-height: none; }
+}
+
+.pde-oas-protocol-details{padding:12px 0;min-width:0;}.pde-oas-protocol-details details{margin:8px 0;border:1px solid var(--pde-oas-border,#80808044);border-radius:6px;overflow:hidden;}.pde-oas-protocol-details summary{padding:8px;cursor:pointer;font-weight:600;}.pde-oas-protocol-details small{opacity:.6;font-weight:400;}.pde-oas-message-pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;padding:8px;}.pde-oas-message-pair h4{margin:0;font-size:12px;opacity:.65;}.pde-oas-protocol-details pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:320px;overflow:auto;font-size:12px;padding:8px;}
+
+.pde-oas-root .pde-oas-operation-section:not([data-protocol="http"]):not([data-protocol="sse"]) { grid-template-columns: minmax(0, 1fr); }
+
+.pde-oas-protocol-details h3 {display:flex;align-items:center;gap:8px;}
+.pde-oas-protocol-details dl {display:grid;grid-template-columns:110px minmax(0,1fr);gap:6px 12px;font-size:13px;margin:12px 0;}
+.pde-oas-protocol-details dt {opacity:.65;}
+.pde-oas-protocol-details dd {margin:0;overflow-wrap:anywhere;}

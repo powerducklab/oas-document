@@ -268,3 +268,7 @@ npm run benchmark   # Navigation lookup benchmark
 ## License
 
 MIT © [powerduck](https://www.powerduck.com)
+
+### Embedding in an application with a shared theme
+
+Pass `controlledTheme="light"` or `controlledTheme="dark"` to follow your application's theme store. Changes apply without reloading the document. Set `header={{ showThemeToggle: false }}` when the host supplies the appearance control. The existing `theme` prop remains the initial standalone theme and retains local preference behavior.

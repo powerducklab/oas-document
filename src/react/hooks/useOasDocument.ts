@@ -25,6 +25,8 @@ export interface UseOasDocumentOptions {
 
   /** Initial color theme. Defaults to `"light"`. */
   initialTheme?: "light" | "dark";
+  /** Controlled theme supplied by an embedding application. */
+  theme?: "light" | "dark";
 }
 
 export interface UseOasDocumentResult {
@@ -190,7 +192,7 @@ export function useOasDocument(
     warnings,
     selectedOperation,
     setSelectedOperation,
-    theme,
+    theme: options.theme ?? theme,
     setTheme,
   };
 }

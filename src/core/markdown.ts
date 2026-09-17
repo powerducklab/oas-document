@@ -33,6 +33,23 @@ function responseStructure(document: OpenApiDocument, value: unknown, ancestors 
 
 /** Concise documentation: description, selected client request, and one primary response. */
 export function buildOperationMarkdown(document: OpenApiDocument, operation: OasOperation, selectedServer?: string, options: OperationMarkdownOptions = {}): string {
+  const raw = operation.raw as Record<string, any>;
+  const protocol = ["websocket", "grpc", "graphql", "mcp"].find(name => raw[`x-${name}`]);
+  if (protocol) {
+    const config = raw[`x-${protocol}`];
+    const sections = [`# ${(operation.summary || operation.path).replace(/[\r\n]/g, " ")}`, `${protocol.toUpperCase()} ${operation.path}`];
+    if (operation.description) sections.push(operation.description);
+    const value = (input: unknown) => typeof input === "string" ? input : JSON.stringify(input, null, 2) ?? "";
+    if (protocol === "websocket") {
+      sections.push(`Endpoint: ${String(config.url || operation.path)}`);
+      for (const [index, message] of (Array.isArray(config.messages) ? config.messages.slice(0, 100) : []).entries()) {
+        sections.push(`## ${String(message?.name || `Message ${index + 1}`).replace(/[\r\n]/g, " ")}`, `Type: ${String(message?.type || "text")}`, "### Message", codeBlock(value(message?.body ?? ""), message?.type === "json" ? "json" : "text"), "### Response example", message?.response === undefined ? "No response example saved." : codeBlock(value(message.response), "text"));
+      }
+    } else {
+      sections.push("## Request", codeBlock(value(config), "json"));
+    }
+    return `${sections.join("\n\n")}\n`;
+  }
   const language = options.language ?? "shell";
   const client = options.client ?? "curl";
   const pathItem = resolveReference(document, document.paths?.[operation.path]);

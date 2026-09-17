@@ -1,3 +1,4 @@
+import { ProtocolDetails, protocolName, ProtocolGlyph } from "./components/ProtocolDetails";
 import "@powerduck/tree/react/index.css";
 import "@powerduck/md-editor/dist/style.css";
 import "./OasDocument.css";
@@ -62,7 +63,7 @@ import { Tree } from "@powerduck/tree/react";
 import type { TreeHandle } from "@powerduck/tree/react";
 import type { TreeNode } from "@powerduck/tree";
 
-import { FiCopy, FiMenu } from "react-icons/fi";
+import { FiCopy, FiMenu, FiCode } from "react-icons/fi";
 import { AiOutlineMinusCircle, AiOutlinePlusCircle } from "react-icons/ai";
 import { IoMdClose } from "react-icons/io";
 import { IoMdCode } from "react-icons/io";
@@ -1322,6 +1323,7 @@ const OperationSection = memo(function OperationSection({
     <section
       id={`${instanceId}-operation-${operation.id}`}
       data-op-section={operation.id}
+      data-protocol={protocolName(operation.raw)}
       className="pde-oas-operation-section"
     >
       <div className="pde-oas-operation-column">
@@ -1329,7 +1331,7 @@ const OperationSection = memo(function OperationSection({
         {/* Title row */}
         <header className="pde-oas-operation-header">
           <div className="pde-oas-operation-endpoint">
-            <OperationMethodLabel method={operation.method} />
+            {protocolName(operation.raw)==="http"?<OperationMethodLabel method={operation.method} />:<ProtocolGlyph protocol={protocolName(operation.raw)}/>}
             <code className="pde-oas-path-code">{operation.path}</code>
 
             {operation.deprecated ? (
@@ -1378,12 +1380,13 @@ const OperationSection = memo(function OperationSection({
           </section>
         ) : null}
 
+        <ProtocolDetails operation={operation}/>
         <RequestBodySection operation={operation} document={document} />
 
-        <ResponsesSection operation={operation} document={document} />
+        {["http", "sse", "graphql"].includes(protocolName(operation.raw)) && <ResponsesSection operation={operation} document={document} />}
       </div>
 
-      {showCodeColumn ? (
+      {showCodeColumn && ["http","sse"].includes(protocolName(operation.raw)) ? (
         <div className="pde-oas-code-column">
           <div className="pde-oas-code-sticky">
             <OperationExportActions document={document} operation={operation} serverUrl={serverUrl} />
@@ -1550,6 +1553,7 @@ function OasDocumentImpl(
     className,
     style,
     theme: initialTheme = "light",
+    controlledTheme,
     header,
     showTree = true,
     treeWidth,
@@ -1614,6 +1618,7 @@ function OasDocumentImpl(
     autoUpgrade,
     defaultOperationId,
     initialTheme,
+    theme: controlledTheme,
   });
 
   selectedIdRef.current = selectedOperation?.id;
@@ -1890,6 +1895,11 @@ function OasDocumentImpl(
         <Tree
           ref={treeRef}
           nodes={tree}
+          renderIcon={({node}) => {
+            const metadata = node.metadata as {path?:string;method?:string} | undefined;
+            const operation = operations.find(op => op.path === metadata?.path && op.method === metadata?.method?.toLowerCase());
+            return operation ? <ProtocolGlyph protocol={protocolName(operation.raw)}/> : <FiCode size={15}/>;
+          }}
           onSelect={handleTreeSelect}
           variant="doc"
           searchable

@@ -23,3 +23,16 @@ it("ignores an older load completing after a newer document", async () => {
   await act(async () => old.resolve(result("Old")));
   expect(state.current.document?.info.title).toBe("New");
 });
+
+it("follows a controlled theme over storage without reloading the document", async () => {
+  localStorage.setItem("pde-oas-theme", "light");
+  mocks.load.mockResolvedValue(result("Controlled"));
+  const { result: state, rerender } = renderHook(({ theme }: { theme: "light" | "dark" }) => useOasDocument("controlled", { theme }), { initialProps: { theme: "dark" as "light" | "dark" } });
+  await waitFor(() => expect(state.current.document?.info.title).toBe("Controlled"));
+  expect(state.current.theme).toBe("dark");
+  const calls = mocks.load.mock.calls.length;
+  rerender({ theme: "light" });
+  expect(state.current.theme).toBe("light");
+  expect(mocks.load.mock.calls.length).toBe(calls);
+  localStorage.removeItem("pde-oas-theme");
+});

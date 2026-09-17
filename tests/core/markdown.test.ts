@@ -80,3 +80,19 @@ describe("operation Markdown", () => {
     expect(markdown).toContain("fetch(");
   });
 });
+
+it("exports named WebSocket messages with their own responses instead of HTTP examples", () => {
+  const doc = fixture();
+  Object.assign(doc.paths!["/pets"]!.get!, { "x-websocket": { url: "ws://localhost:4189", messages: [
+    { id: "a", name: "Greeting", type: "text", body: "hello", response: "welcome" },
+    { id: "b", name: "Ping", type: "json", body: '{"ping":true}' },
+  ] } });
+  const markdown = exportDoc(doc);
+  expect(markdown).toContain("WEBSOCKET /pets");
+  expect(markdown).toContain("## Greeting");
+  expect(markdown).toContain("welcome");
+  expect(markdown).toContain("## Ping");
+  expect(markdown).toContain("No response example saved.");
+  expect(markdown).not.toContain("curl");
+  expect(markdown).not.toContain("Response (200)");
+});
