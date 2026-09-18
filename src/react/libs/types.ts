@@ -96,6 +96,12 @@ export interface OasDocumentProps {
 
   /** Sidebar width in pixels, clamped to 200–480. Defaults to a saved width or 280. */
   treeWidth?: number;
+
+  /**
+   * Show the code-examples column and the Copy-for-LLM / View-as-Markdown
+   * export actions. Defaults to true; set false for an embedded single-op preview.
+   */
+  showCodeExamples?: boolean;
 }
 
 /**

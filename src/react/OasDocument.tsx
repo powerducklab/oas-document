@@ -1307,6 +1307,7 @@ type OperationSectionProps = {
   languageGroups: Map<string, string[]>;
   theme: "light" | "dark";
   showCodeColumn: boolean;
+  showCodeExamples: boolean;
   instanceId: string;
 };
 
@@ -1317,6 +1318,7 @@ const OperationSection = memo(function OperationSection({
   languageGroups,
   theme,
   showCodeColumn,
+  showCodeExamples,
   instanceId,
 }: OperationSectionProps) {
   return (
@@ -1327,7 +1329,7 @@ const OperationSection = memo(function OperationSection({
       className="pde-oas-operation-section"
     >
       <div className="pde-oas-operation-column">
-        {!showCodeColumn && <OperationExportActions document={document} operation={operation} serverUrl={serverUrl} />}
+        {!showCodeColumn && showCodeExamples && <OperationExportActions document={document} operation={operation} serverUrl={serverUrl} />}
         {/* Title row */}
         <header className="pde-oas-operation-header">
           <div className="pde-oas-operation-endpoint">
@@ -1386,7 +1388,7 @@ const OperationSection = memo(function OperationSection({
         {["http", "sse", "graphql"].includes(protocolName(operation.raw)) && <ResponsesSection operation={operation} document={document} />}
       </div>
 
-      {showCodeColumn && ["http","sse"].includes(protocolName(operation.raw)) ? (
+      {showCodeColumn && showCodeExamples && ["http","sse"].includes(protocolName(operation.raw)) ? (
         <div className="pde-oas-code-column">
           <div className="pde-oas-code-sticky">
             <OperationExportActions document={document} operation={operation} serverUrl={serverUrl} />
@@ -1557,6 +1559,7 @@ function OasDocumentImpl(
     header,
     showTree = true,
     treeWidth,
+    showCodeExamples = true,
   }: OasDocumentProps,
   ref: ForwardedRef<OasDocumentHandle>,
 ) {
@@ -1946,6 +1949,7 @@ function OasDocumentImpl(
           languageGroups={languageGroups}
           theme={theme}
           showCodeColumn={showCodeColumn}
+          showCodeExamples={showCodeExamples}
           instanceId={instanceId}
         />
       ))}
