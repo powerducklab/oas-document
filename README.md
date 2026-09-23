@@ -155,6 +155,7 @@ The UI generates Markdown only when an export action is used. Both actions use t
 | `className` | `string` | — | Additional CSS class for the root element. |
 | `style` | `React.CSSProperties` | — | Inline styles for the root element. |
 | `theme` | `"light" \| "dark"` | `"light"` | Initial color theme. The selected theme persists to `localStorage` (key: `pde-oas-theme`). |
+| `controlledTheme` | `"light" \| "dark"` | — | Controlled theme that follows the host application's theme store. Overrides `theme` while set; pair it with `header={{ showThemeToggle: false }}`. |
 | `header` | `OasDocumentHeaderConfig` | — | Header configuration (logo, title, nav items, theme toggle). |
 | `showTree` | `boolean` | `true` | Whether to show the sidebar tree. |
 | `treeWidth` | `number` | `340` | Sidebar width in pixels. When omitted, width is restored from `localStorage` (key: `pde-oas-sidebar-width`); manual drag-resize saves automatically. Range: 240–480. |
@@ -261,7 +262,7 @@ npm run benchmark   # Navigation lookup benchmark
 
 - [Official Website](https://www.powerduck.com/opensource/oas-document.html)
 - [Documentation](https://www.powerduck.com/docs/oas-document/introduction/)
-- [Live Demo](https://www.powerduck.com/demo/oas-document)
+- [Live Demo](https://www.powerduck.com/demo/)
 - [GitHub](https://github.com/powerducklab/oas-document)
 - [npm](https://www.npmjs.com/package/@powerduck/oas-document)
 
