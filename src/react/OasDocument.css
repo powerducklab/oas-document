@@ -168,6 +168,75 @@
 }
 
 /* ==========================================================================
+   Header settings popover
+   ========================================================================== */
+
+.pde-oas-settings {
+  width: 264px;
+  background: var(--pde-color-surface);
+  border: 1px solid var(--pde-color-border-default);
+  border-radius: var(--pde-radius-lg);
+  box-shadow: var(--shadow-md);
+  color: var(--pde-color-text-primary);
+  font-family: var(--pde-font-ui);
+}
+
+.pde-oas-settings [data-part="arrow"] {
+  --arrow-background: var(--pde-color-surface);
+  --arrow-size: 10px;
+}
+
+.pde-oas-settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--pde-space-3) var(--pde-space-4) 0;
+}
+
+.pde-oas-settings-title {
+  font-size: var(--pde-font-size-md);
+  font-weight: 600;
+  color: var(--pde-color-text-primary);
+}
+
+.pde-oas-settings-close {
+  color: var(--pde-color-text-secondary);
+  border-radius: var(--pde-radius-sm);
+}
+
+.pde-oas-settings-close:hover {
+  color: var(--pde-color-text-primary);
+  background: var(--pde-color-surface-hover);
+}
+
+.pde-oas-settings-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pde-space-2);
+  padding: var(--pde-space-3) var(--pde-space-4) var(--pde-space-4);
+}
+
+.pde-oas-settings-label {
+  font-size: var(--pde-font-size-xs);
+  font-weight: 500;
+  color: var(--pde-color-text-secondary);
+  margin-top: var(--pde-space-1);
+}
+
+.pde-oas-settings-label:first-child {
+  margin-top: 0;
+}
+
+.pde-oas-settings-theme-group {
+  width: 100%;
+}
+
+.pde-oas-settings .pde-oas-select,
+.pde-oas-settings .pde-oas-select-trigger {
+  width: 100%;
+}
+
+/* ==========================================================================
    Workspace / main region
    ========================================================================== */
 

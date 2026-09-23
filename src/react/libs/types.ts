@@ -38,6 +38,12 @@ export interface OasDocumentHeaderConfig {
 
   /** Whether to show the light/dark theme toggle button. Default true. */
   showThemeToggle?: boolean;
+
+  /**
+   * Whether to show the settings gear (theme, default code language and
+   * HTTP client). Defaults to true.
+   */
+  showSettings?: boolean;
 }
 
 /* -------------------------------------------------------------------------- */

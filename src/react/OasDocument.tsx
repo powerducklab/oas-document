@@ -15,7 +15,7 @@ import {
   useState,
 } from "react";
 
-import type { ForwardedRef } from "react";
+import type { ForwardedRef, ReactNode } from "react";
 
 import { renderMarkdown, type RendererOptions } from "@powerduck/md-editor";
 
@@ -57,6 +57,7 @@ import { ReferenceSelect } from "./components/ReferenceSelect";
 import { LanguageIcon, languageLabel, clientLabel } from "./components/LanguageIcon";
 import { OperationExportActions } from "./components/OperationExportActions";
 import { Drawer } from "./components/Drawer";
+import { SettingsMenu } from "./components/SettingsMenu";
 
 import { Tree } from "@powerduck/tree/react";
 
@@ -1451,6 +1452,7 @@ type HeaderProps = {
   onToggleTheme: () => void;
   onOpenNav: () => void;
   showNavButton: boolean;
+  settingsSlot?: ReactNode;
 };
 
 function Header({
@@ -1459,6 +1461,7 @@ function Header({
   onToggleTheme,
   onOpenNav,
   showNavButton,
+  settingsSlot,
 }: HeaderProps) {
   const title = config?.title ?? "API Documentation";
   const navItems = config?.navItems ?? [];
@@ -1535,8 +1538,7 @@ function Header({
 
       <div className="pde-oas-header-right">
         {navItems.map(renderNavItem)}
-
-
+        {settingsSlot}
       </div>
     </header>
   );
@@ -1884,6 +1886,14 @@ function OasDocumentImpl(
   const version = document.info?.version;
   const showCodeColumn = !isTablet;
 
+  const settingsSlot = header?.showSettings === false ? null : (
+    <SettingsMenu
+      theme={theme}
+      onThemeChange={setTheme}
+      languageGroups={languageGroups}
+    />
+  );
+
   /* ---- Sidebar ---------------------------------------------------------- */
   const sidebar = (
     <aside className="pde-oas-sidebar" aria-label="API navigation">
@@ -1974,6 +1984,7 @@ function OasDocumentImpl(
         onToggleTheme={handleToggleTheme}
         onOpenNav={() => setNavOpen(true)}
         showNavButton={isTablet && showTree}
+        settingsSlot={settingsSlot}
       />
 
       {isTablet ? <>
