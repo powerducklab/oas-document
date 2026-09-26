@@ -281,3 +281,13 @@ export function safeNavigationHref(value: string): string | undefined {
     return undefined;
   }
 }
+
+/** Keep the verb in its badge, while retaining summaries and search highlighting. */
+export function documentNavigationNodes(nodes: TreeNode[]): TreeNode[] {
+  return nodes.map((node) => {
+    const metadata = node.metadata as DocNodeMetadata | undefined;
+    const fallback = metadata?.method && `${metadata.method.toUpperCase()} ${metadata.path}`;
+    return { ...node, name: node.name === fallback ? metadata?.path ?? node.name : node.name,
+      ...(node.children ? { children: documentNavigationNodes(node.children) } : {}) };
+  });
+}

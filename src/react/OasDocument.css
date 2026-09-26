@@ -1799,7 +1799,7 @@
     transition-duration: .01ms !important;
   }
 }
-.pde-oas-code-scroll { overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+
 .pde-oas-request-card-actions .pde-oas-copy-button { position: static; }
 .pde-oas-markdown ul { list-style: disc; }
 .pde-oas-markdown ol { list-style: decimal; }
@@ -1858,7 +1858,7 @@
 .pde-oas-root .pde-oas-response-status-tab-active { background: var(--color-surface-selected); }
 .pde-oas-root .pde-oas-code-scroll {
   max-height: min(320px, max(160px, calc((100dvh - 208px) / 2)));
-  overflow: auto; overscroll-behavior: contain; position: relative;
+  overflow: auto; overscroll-behavior: auto; scrollbar-width: thin; position: relative;
 }
 .pde-oas-root .pde-oas-code-block-response .pde-oas-code-scroll {
   max-height: min(280px, max(144px, calc((100dvh - 208px) / 2)));

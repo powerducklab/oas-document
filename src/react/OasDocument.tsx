@@ -80,6 +80,7 @@ import type {
 } from "./libs/types";
 
 import {
+  documentNavigationNodes,
   buildOperationTreeIndex,
   buildOrderedOperations,
   cn,
@@ -1301,6 +1302,24 @@ function CodeExamplesPanel({
    Operation section (two-column: left docs, right sticky code)
    ========================================================================== */
 
+function operationServerUrl(document: OasRootDocument, operation: OasOperation, selected: string): string {
+  const servers = operation.raw.servers ?? document.paths?.[operation.path]?.servers;
+  const server = servers?.[0];
+  return server ? resolveServerUrl(server.url, server.variables) : selected;
+}
+
+function operationEndpoint(operation: OasOperation, serverUrl: string): string {
+  const raw = operation.raw as Record<string, any>;
+  const protocol = protocolName(raw);
+  const explicit = protocol === "grpc" ? raw["x-grpc"]?.address
+    : protocol === "websocket" ? raw["x-websocket"]?.url
+    : protocol === "graphql" ? raw["x-graphql"]?.endpoint
+    : protocol === "mcp" ? raw["x-mcp"]?.endpoint : undefined;
+  if (typeof explicit === "string" && explicit) return explicit;
+  const base = protocol === "websocket" ? serverUrl.replace(/^http/, "ws") : serverUrl;
+  return `${base.replace(/\/$/, "")}${operation.path}`;
+}
+
 type OperationSectionProps = {
   operation: OasOperation;
   document: OasRootDocument;
@@ -1335,7 +1354,7 @@ const OperationSection = memo(function OperationSection({
         <header className="pde-oas-operation-header">
           <div className="pde-oas-operation-endpoint">
             {protocolName(operation.raw)==="http"?<OperationMethodLabel method={operation.method} />:<ProtocolGlyph protocol={protocolName(operation.raw)}/>}
-            <code className="pde-oas-path-code">{operation.path}</code>
+            <code className="pde-oas-path-code">{operationEndpoint(operation, serverUrl)}</code>
 
             {operation.deprecated ? (
               <span className="pde-oas-deprecated-badge">Deprecated</span>
@@ -1626,8 +1645,17 @@ function OasDocumentImpl(
     theme: controlledTheme,
   });
 
+  const navigationNodes = useMemo(() => documentNavigationNodes(tree), [tree]);
   selectedIdRef.current = selectedOperation?.id;
   const resolveNode = useMemo(() => createOperationResolver(operations), [operations]);
+  const renderTreeIcon = useCallback(({ node }: { node: TreeNode }) => {
+    const operation = resolveNode(node);
+    if (!operation) return <FiCode size={15} />;
+    const protocol = protocolName(operation.raw);
+    return protocol === "http"
+      ? <OperationMethodLabel method={operation.method} className="pde-oas-tree-method" />
+      : <ProtocolGlyph protocol={protocol} />;
+  }, [resolveNode]);
   useEffect(() => {
     if (treeWidth !== undefined && Number.isFinite(treeWidth)) {
       setResolvedTreeWidth(Math.min(480, Math.max(200, treeWidth)));
@@ -1907,18 +1935,8 @@ function OasDocumentImpl(
       <div className="pde-oas-sidebar-tree" ref={treeRootRef}>
         <Tree
           ref={treeRef}
-          nodes={tree}
-          renderIcon={({node}) => {
-            const metadata = node.metadata as {path?:string;method?:string} | undefined;
-            const operation = operations.find(op => op.path === metadata?.path && op.method === metadata?.method?.toLowerCase());
-            if (!operation) return <FiCode size={15}/>;
-            const protocol = protocolName(operation.raw);
-            // HTTP operations show their verb badge; non-HTTP protocols (gRPC,
-            // WebSocket, GraphQL, MCP, SSE) keep their protocol glyph.
-            return protocol === "http"
-              ? <OperationMethodLabel method={operation.method} className="pde-oas-tree-method" />
-              : <ProtocolGlyph protocol={protocol} />;
-          }}
+          nodes={navigationNodes}
+          renderIcon={renderTreeIcon}
           onSelect={handleTreeSelect}
           variant="doc"
           searchable
@@ -1961,7 +1979,7 @@ function OasDocumentImpl(
           key={operation.id}
           operation={operation}
           document={document}
-          serverUrl={selectedServerUrl}
+          serverUrl={operationServerUrl(document, operation, selectedServerUrl)}
           languageGroups={languageGroups}
           theme={theme}
           showCodeColumn={showCodeColumn}
@@ -1997,7 +2015,7 @@ function OasDocumentImpl(
         {showTree ? <Drawer open={isNavOpen} onClose={() => setNavOpen(false)} label="Navigation" side="left">{sidebar}</Drawer> : null}
         <Drawer open={isCodeOpen} onClose={() => setCodeOpen(false)} label="Code examples" side="right">
           {selectedOperation ? <CodeExamplesPanel
-            operation={selectedOperation} serverUrl={selectedServerUrl}
+            operation={selectedOperation} serverUrl={operationServerUrl(document, selectedOperation, selectedServerUrl)}
             document={document} languageGroups={languageGroups} theme={theme}
           /> : null}
         </Drawer>

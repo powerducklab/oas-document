@@ -46,3 +46,14 @@ describe("navigation URLs", () => {
     expect(safeNavigationHref(url)).toBe(url);
   });
 });
+
+it("shows one method badge without repeating fallback verbs in navigation labels", async () => {
+  const { documentNavigationNodes } = await import("../../src/react/libs/utils");
+  const nodes: TreeNode[] = [{ id: "group", name: "Group", children: [
+    { id: "a", name: "GET /pets", metadata: { method: "get", path: "/pets" } },
+    { id: "b", name: "Create a pet", metadata: { method: "post", path: "/pets" } },
+  ] }];
+  const result = documentNavigationNodes(nodes);
+  expect(result[0].children?.map((node) => node.name)).toEqual(["/pets", "Create a pet"]);
+  expect(nodes[0].children?.[0].name).toBe("GET /pets");
+});

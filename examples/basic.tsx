@@ -22,6 +22,7 @@ const petStoreSpec = {
       "- Schema exploration\n" +
       "- Code examples",
   },
+  servers: [{ url: "https://petstore.example.com/v1", description: "Example server" }],
   tags: [
     { name: "pets", description: "Pet management operations" },
     { name: "store", description: "Store inventory" },

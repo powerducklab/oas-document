@@ -265,3 +265,17 @@ it("tracks the reading edge without selecting the preceding section", async () =
   await waitFor(() => expect(ref.current?.getSelectedOperation()?.id).toBe(sections[1].dataset.opSection));
   expect(change).not.toHaveBeenCalled();
 });
+
+
+it("displays the effective operation server alongside the path", async () => {
+  const input = {
+    ...fixtureDoc,
+    servers: [{ url: "https://root.example.com/v1" }],
+    paths: { "/pets": { servers: [{ url: "https://path.example.com/v2" }], get: {
+      servers: [{ url: "https://{region}.example.com/v3", variables: { region: { default: "eu" } } }],
+      responses: { "200": { description: "OK" } },
+    } } },
+  };
+  const { container } = render(<OasDocument input={input as never} />);
+  await waitFor(() => expect(container.querySelector(".pde-oas-path-code")?.textContent).toBe("https://eu.example.com/v3/pets"));
+});
