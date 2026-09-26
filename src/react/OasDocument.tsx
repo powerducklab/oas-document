@@ -1911,7 +1911,13 @@ function OasDocumentImpl(
           renderIcon={({node}) => {
             const metadata = node.metadata as {path?:string;method?:string} | undefined;
             const operation = operations.find(op => op.path === metadata?.path && op.method === metadata?.method?.toLowerCase());
-            return operation ? <ProtocolGlyph protocol={protocolName(operation.raw)}/> : <FiCode size={15}/>;
+            if (!operation) return <FiCode size={15}/>;
+            const protocol = protocolName(operation.raw);
+            // HTTP operations show their verb badge; non-HTTP protocols (gRPC,
+            // WebSocket, GraphQL, MCP, SSE) keep their protocol glyph.
+            return protocol === "http"
+              ? <OperationMethodLabel method={operation.method} className="pde-oas-tree-method" />
+              : <ProtocolGlyph protocol={protocol} />;
           }}
           onSelect={handleTreeSelect}
           variant="doc"

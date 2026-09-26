@@ -1,6 +1,6 @@
 {
   "name": "@powerduck/oas-document",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "description": "Production-grade OpenAPI documentation component. Pass an OAS document and get a full API documentation UI with tree navigation, auto-upgrade to OAS 3.2, and code examples.",
   "license": "MIT",
   "author": "powerduck",
