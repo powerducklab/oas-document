@@ -1,10 +1,25 @@
-import { FiGlobe, FiRadio, FiRepeat, FiCode, FiShare2, FiLink } from "react-icons/fi";
+import { LuGlobe, LuRadio, LuArrowLeftRight, LuNetwork } from "react-icons/lu";
+import { GrGraphQl } from "react-icons/gr";
+import { VscMcp } from "react-icons/vsc";
+import type { IconType } from "react-icons";
 import type { OasOperation } from "../../core/types";
 export function protocolName(raw: Record<string, unknown>):string {
  for(const name of ["websocket","grpc","graphql","mcp"]) if(raw[`x-${name}`])return name;
  return typeof raw["x-protocol"]==="string"?raw["x-protocol"]:"http";
 }
-export function ProtocolGlyph({protocol}:{protocol:string}) { const Icon = ({http:FiGlobe,sse:FiRadio,websocket:FiRepeat,graphql:FiCode,grpc:FiShare2,mcp:FiLink} as const)[protocol as "http"] || FiGlobe; return <span title={protocol.toUpperCase()} aria-label={protocol.toUpperCase()} style={{display:"inline-flex",width:20,minWidth:20,alignItems:"center",justifyContent:"center"}}><Icon size={15}/></span>; }
+// Keep protocol identities aligned with the Debug navigator.
+const protocolVisuals: Record<string, { icon: IconType; color: string }> = {
+ http: { icon: LuGlobe, color: "var(--color-info)" },
+ sse: { icon: LuRadio, color: "var(--color-teal)" },
+ websocket: { icon: LuArrowLeftRight, color: "var(--color-warning)" },
+ graphql: { icon: GrGraphQl, color: "var(--color-graphql)" },
+ grpc: { icon: LuNetwork, color: "var(--color-accent-blue)" },
+ mcp: { icon: VscMcp, color: "var(--color-secret)" },
+};
+export function ProtocolGlyph({protocol}:{protocol:string}) {
+ const {icon: Icon, color} = protocolVisuals[protocol] ?? protocolVisuals.http;
+ return <span title={protocol.toUpperCase()} aria-label={protocol.toUpperCase()} style={{display:"inline-flex",width:20,minWidth:20,flexShrink:0,alignItems:"center",justifyContent:"center",color}}><Icon size={16} aria-hidden="true"/></span>;
+}
 export function ProtocolDetails({operation}:{operation:OasOperation}) {
  const raw=operation.raw as Record<string,any>;
  const protocol=protocolName(raw), config=raw[`x-${protocol}`]||{};

@@ -64,6 +64,9 @@
     --color-info: #4f79bf;
 
     --color-secret: #8267c9;
+    --color-graphql: #c42a88;
+    --color-accent-blue: #3573d6;
+    --color-teal: #0e9488;
     --color-dynamic: #4d7ec8;
 
     --color-warning-soft: #fff8e8;
@@ -193,6 +196,9 @@
     --color-info: #82aef2;
 
     --color-secret: #ae98ef;
+    --color-graphql: #f065b6;
+    --color-accent-blue: #63a0f5;
+    --color-teal: #35c4b5;
     --color-dynamic: #7eb0f3;
 
     --color-warning-soft: #382f19;
