@@ -2021,3 +2021,13 @@
 .pde-oas-protocol-details dl {display:grid;grid-template-columns:110px minmax(0,1fr);gap:6px 12px;font-size:13px;margin:12px 0;}
 .pde-oas-protocol-details dt {opacity:.65;}
 .pde-oas-protocol-details dd {margin:0;overflow-wrap:anywhere;}
+
+.pde-oas-root .pde-oas-operation-section[data-code-examples="false"] { grid-template-columns: minmax(0, 1fr); }
+
+.pde-oas-edit-documentation { float: right; border: 1px solid var(--pde-oas-border); border-radius: 6px; padding: 6px 10px; background: transparent; color: inherit; cursor: pointer; font: inherit; font-size: 13px; }
+.pde-oas-contracts { display: grid; gap: 20px; }
+.pde-oas-contract-empty { opacity: .65; font-size: 13px; }
+.pde-oas-protocol-details h3 { display: flex; align-items: center; gap: 8px; }
+
+.pde-oas-contracts > .pde-oas-section { margin: 0; padding: 16px; border: 1px solid var(--pde-oas-border); border-radius: 8px; }
+.pde-oas-contracts h4 { margin: 0 0 12px; font-size: 14px; font-weight: 600; }

@@ -77,6 +77,11 @@ export interface OasDocumentProps {
    * do not fire this callback.
    */
   onOperationChange?: (operation: OasOperation) => void;
+  /** Reports the active reading section, including scroll-spy changes. Do not scroll in response. */
+  onActiveOperationChange?: (operation: OasOperation) => void;
+  /** Host-owned editor; omitted in published read-only documentation. */
+  onEditOperation?: (operation: OasOperation) => void;
+  editOperationLabel?: string;
 
   /** Extra class name applied to the root element. */
   className?: string;

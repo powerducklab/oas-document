@@ -34,9 +34,9 @@ function responseStructure(document: OpenApiDocument, value: unknown, ancestors 
 /** Concise documentation: description, selected client request, and one primary response. */
 export function buildOperationMarkdown(document: OpenApiDocument, operation: OasOperation, selectedServer?: string, options: OperationMarkdownOptions = {}): string {
   const raw = operation.raw as Record<string, any>;
-  const protocol = ["websocket", "grpc", "graphql", "mcp"].find(name => raw[`x-${name}`]);
+  const protocol = ["websocket", "grpc", "graphql", "mcp", "sse"].find(name => raw["x-protocol"] === name || raw[`x-${name}`]);
   if (protocol) {
-    const config = raw[`x-${protocol}`];
+    const config = raw[`x-${protocol}`] ?? {};
     const sections = [`# ${(operation.summary || operation.path).replace(/[\r\n]/g, " ")}`, `${protocol.toUpperCase()} ${operation.path}`];
     if (operation.description) sections.push(operation.description);
     const value = (input: unknown) => typeof input === "string" ? input : JSON.stringify(input, null, 2) ?? "";
@@ -48,6 +48,16 @@ export function buildOperationMarkdown(document: OpenApiDocument, operation: Oas
     } else {
       sections.push("## Request", codeBlock(value(config), "json"));
     }
+    if (operation.parameters.length) sections.push("## Connection parameters", codeBlock(value(operation.parameters), "json"));
+    for (const [title, schema] of [["Request schema", config.variablesSchema ?? config.argumentsSchema ?? config.requestSchema ?? config.inputSchema], ["Response schema", config.responseSchema ?? config.outputSchema]]) {
+      if (schema !== undefined) sections.push(`## ${title}`, codeBlock(value(responseStructure(document, schema)), "json"));
+    }
+    for (const message of Array.isArray(config.messages) ? config.messages : []) {
+      if (!message || typeof message !== "object") continue;
+      for (const field of ["requestSchema", "responseSchema"]) if (message[field] !== undefined) sections.push(`### ${String(message.name ?? "Message").replace(/[\r\n]/g, " ")} · ${field}`, codeBlock(value(responseStructure(document, message[field])), "json"));
+    }
+    if (operation.requestBody) sections.push("## Request body", codeBlock(value(operation.requestBody), "json"));
+    if (Object.keys(operation.responses).length) sections.push("## Responses", codeBlock(value(operation.responses), "json"));
     return `${sections.join("\n\n")}\n`;
   }
   const language = options.language ?? "shell";

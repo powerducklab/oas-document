@@ -64,7 +64,7 @@ import { Tree } from "@powerduck/tree/react";
 import type { TreeHandle } from "@powerduck/tree/react";
 import type { TreeNode } from "@powerduck/tree";
 
-import { FiCopy, FiMenu, FiCode } from "react-icons/fi";
+import { FiCopy, FiMenu, FiFolder } from "react-icons/fi";
 import { AiOutlineMinusCircle, AiOutlinePlusCircle } from "react-icons/ai";
 import { IoMdClose } from "react-icons/io";
 import { IoMdCode } from "react-icons/io";
@@ -480,7 +480,7 @@ function OperationMethodLabel({
         className,
       )}
     >
-      {METHOD_LABELS[method]}
+      {className === "pde-oas-tree-method" ? ({ delete: "DEL", options: "OPT", patch: "PAT", connect: "CON", trace: "TRC" } as Record<string, string>)[method] ?? METHOD_LABELS[method] : METHOD_LABELS[method]}
     </span>
   );
 }
@@ -1018,8 +1018,8 @@ function ResponsesSection({ operation, document }: ResponsesSectionProps) {
   return (
     <section className="pde-oas-section">
       <SectionHeader
-        title="Responses"
-        description="Possible responses returned by this endpoint."
+        title={protocolName(operation.raw) === "websocket" ? "Handshake responses" : ["grpc", "mcp"].includes(protocolName(operation.raw)) ? "Transport response metadata" : "Responses"}
+        description={protocolName(operation.raw) === "websocket" ? "Connection handshake outcomes. Message payloads are documented separately above." : ["grpc", "mcp"].includes(protocolName(operation.raw)) ? "OpenAPI transport metadata; these HTTP codes are not RPC result or error codes. See the response schema above." : "Possible responses returned by this endpoint."}
         count={responseEntries.length}
       />
 
@@ -1329,6 +1329,8 @@ type OperationSectionProps = {
   showCodeColumn: boolean;
   showCodeExamples: boolean;
   instanceId: string;
+  onEditOperation?: (operation: OasOperation) => void;
+  editOperationLabel?: string;
 };
 
 const OperationSection = memo(function OperationSection({
@@ -1340,12 +1342,15 @@ const OperationSection = memo(function OperationSection({
   showCodeColumn,
   showCodeExamples,
   instanceId,
+  onEditOperation,
+  editOperationLabel,
 }: OperationSectionProps) {
   return (
     <section
       id={`${instanceId}-operation-${operation.id}`}
       data-op-section={operation.id}
       data-protocol={protocolName(operation.raw)}
+      data-code-examples={showCodeExamples}
       className="pde-oas-operation-section"
     >
       <div className="pde-oas-operation-column">
@@ -1361,6 +1366,7 @@ const OperationSection = memo(function OperationSection({
             ) : null}
           </div>
 
+          {onEditOperation && protocolName(operation.raw) !== "http" && <button type="button" className="pde-oas-edit-documentation" onClick={() => onEditOperation(operation)}>{editOperationLabel}</button>}
           <h2 className="pde-oas-operation-title">
             {operation.summary || operation.operationId || operation.path}
           </h2>
@@ -1402,10 +1408,10 @@ const OperationSection = memo(function OperationSection({
           </section>
         ) : null}
 
-        <ProtocolDetails operation={operation}/>
+        <ProtocolDetails operation={operation} renderSchema={(schema) => <SchemaBlock schema={schema} document={document} />}/>
         <RequestBodySection operation={operation} document={document} />
 
-        {["http", "sse", "graphql"].includes(protocolName(operation.raw)) && <ResponsesSection operation={operation} document={document} />}
+        <ResponsesSection operation={operation} document={document} />
       </div>
 
       {showCodeColumn && showCodeExamples && ["http","sse"].includes(protocolName(operation.raw)) ? (
@@ -1573,6 +1579,9 @@ function OasDocumentImpl(
     autoUpgrade = true,
     defaultOperationId,
     onOperationChange,
+    onActiveOperationChange,
+    onEditOperation,
+    editOperationLabel = "Edit documentation",
     className,
     style,
     theme: initialTheme = "light",
@@ -1645,12 +1654,14 @@ function OasDocumentImpl(
     theme: controlledTheme,
   });
 
-  const navigationNodes = useMemo(() => documentNavigationNodes(tree), [tree]);
+  const navigationNodes = useMemo(() => documentNavigationNodes(tree,
+    !operations.some((operation) => operation.tags.includes("Other")) &&
+    !(document?.tags ?? []).some((tag) => tag.name === "Other")), [tree, operations, document]);
   selectedIdRef.current = selectedOperation?.id;
   const resolveNode = useMemo(() => createOperationResolver(operations), [operations]);
   const renderTreeIcon = useCallback(({ node }: { node: TreeNode }) => {
     const operation = resolveNode(node);
-    if (!operation) return <FiCode size={15} />;
+    if (!operation) return <FiFolder size={15} />;
     const protocol = protocolName(operation.raw);
     return protocol === "http"
       ? <OperationMethodLabel method={operation.method} className="pde-oas-tree-method" />
@@ -1714,6 +1725,10 @@ function OasDocumentImpl(
     () => buildOrderedOperations(tree, operations),
     [tree, operations],
   );
+
+  useEffect(() => {
+    if (selectedOperation) onActiveOperationChange?.(selectedOperation);
+  }, [selectedOperation, onActiveOperationChange]);
 
   /* ---- Selection handling (user-initiated) ------------------------------ */
   const handleOperationChange = useCallback(
@@ -1985,6 +2000,8 @@ function OasDocumentImpl(
           showCodeColumn={showCodeColumn}
           showCodeExamples={showCodeExamples}
           instanceId={instanceId}
+          onEditOperation={onEditOperation}
+          editOperationLabel={editOperationLabel}
         />
       ))}
     </div>

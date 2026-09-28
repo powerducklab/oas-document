@@ -135,7 +135,7 @@ export function resolveOperationFromNode(
     return direct;
   }
 
-  const metadata = node.metadata as DocNodeMetadata | undefined;
+  const metadata = node.metadata as (DocNodeMetadata & { source?: string }) | undefined;
 
   if (!metadata) {
     return undefined;
@@ -199,7 +199,7 @@ export function buildOperationTreeIndex(
   const index = new Map<string, string>();
   const resolve = createOperationResolver(operations);
   walkTree(tree, (node) => {
-    if ((node.metadata as DocNodeMetadata | undefined)?.kind !== "operation") return;
+    if ((node.metadata as (DocNodeMetadata & { source?: string }) | undefined)?.kind !== "operation") return;
     const operation = resolve(node);
     if (operation && !index.has(operation.id)) index.set(operation.id, node.id);
   });
@@ -234,7 +234,7 @@ export function buildOrderedOperations(
   };
 
   walkTree(tree, (node) => {
-    const metadata = node.metadata as DocNodeMetadata | undefined;
+    const metadata = node.metadata as (DocNodeMetadata & { source?: string }) | undefined;
 
     if (metadata?.kind !== "operation") {
       return;
@@ -265,7 +265,7 @@ export function createOperationResolver(operations: OasOperation[]) {
     if (!endpoints.has(endpoint)) endpoints.set(endpoint, operation);
   }
   return (node: TreeNode): OasOperation | undefined => {
-    const metadata = node.metadata as DocNodeMetadata | undefined;
+    const metadata = node.metadata as (DocNodeMetadata & { source?: string }) | undefined;
     return ids.get(node.id) ??
       (metadata?.operationId ? ids.get(metadata.operationId) : undefined) ??
       endpoints.get(JSON.stringify([metadata?.method, metadata?.path]));
@@ -283,11 +283,14 @@ export function safeNavigationHref(value: string): string | undefined {
 }
 
 /** Keep the verb in its badge, while retaining summaries and search highlighting. */
-export function documentNavigationNodes(nodes: TreeNode[]): TreeNode[] {
-  return nodes.map((node) => {
-    const metadata = node.metadata as DocNodeMetadata | undefined;
+export function documentNavigationNodes(nodes: TreeNode[], flattenUntagged = false): TreeNode[] {
+  return nodes.flatMap((node) => {
+    const metadata = node.metadata as (DocNodeMetadata & { source?: string }) | undefined;
+    if (node.id === "tag:Other" && (metadata?.source === "fallback" || flattenUntagged) && metadata?.kind === "tag") {
+      return documentNavigationNodes(node.children ?? [], flattenUntagged);
+    }
     const fallback = metadata?.method && `${metadata.method.toUpperCase()} ${metadata.path}`;
     return { ...node, name: node.name === fallback ? metadata?.path ?? node.name : node.name,
-      ...(node.children ? { children: documentNavigationNodes(node.children) } : {}) };
+      ...(node.children ? { children: documentNavigationNodes(node.children, flattenUntagged) } : {}) };
   });
 }

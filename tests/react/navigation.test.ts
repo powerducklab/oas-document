@@ -57,3 +57,19 @@ it("shows one method badge without repeating fallback verbs in navigation labels
   expect(result[0].children?.map((node) => node.name)).toEqual(["/pets", "Create a pet"]);
   expect(nodes[0].children?.[0].name).toBe("GET /pets");
 });
+
+it("flattens synthetic Other but preserves user-created Other folders", async () => {
+  const { documentNavigationNodes } = await import("../../src/react/libs/utils");
+  const child = { id: "op", name: "GET /pets", metadata: { method: "get", path: "/pets" } };
+  const synthetic = { id: "tag:Other", name: "Other", metadata: { kind: "tag", source: "fallback" }, children: [child] } as TreeNode;
+  expect(documentNavigationNodes([synthetic]).map(node => node.id)).toEqual(["op"]);
+  const explicit = { ...synthetic, metadata: { kind: "tag", source: "tags" } } as TreeNode;
+  expect(documentNavigationNodes([explicit])[0].id).toBe("tag:Other");
+});
+
+it("flattens untagged groups emitted by the installed tag adapter", async () => {
+ const { documentNavigationNodes } = await import("../../src/react/libs/utils");
+ const group = {id:"tag:Other",name:"Other",metadata:{kind:"tag",source:"tag"},children:[{id:"op",name:"GET /events"}]} as TreeNode;
+ expect(documentNavigationNodes([group],true).map(node=>node.id)).toEqual(["op"]);
+ expect(documentNavigationNodes([group],false)[0].id).toBe("tag:Other");
+});

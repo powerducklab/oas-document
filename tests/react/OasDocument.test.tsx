@@ -254,7 +254,8 @@ describe("mobile code drawer", () => {
 it("tracks the reading edge without selecting the preceding section", async () => {
   const ref = createRef<OasDocumentHandle>();
   const change = vi.fn();
-  const { container } = render(<OasDocument ref={ref} input={fixtureDoc as never} onOperationChange={change} />);
+  const activeChange = vi.fn();
+  const { container } = render(<OasDocument ref={ref} input={fixtureDoc as never} onOperationChange={change} onActiveOperationChange={activeChange} />);
   await waitFor(() => expect(ref.current?.getOperations()).toHaveLength(2));
   const readingPane = container.querySelector<HTMLElement>(".pde-oas-content")!;
   readingPane.getBoundingClientRect = () => ({ top: 56 }) as DOMRect;
@@ -264,6 +265,11 @@ it("tracks the reading edge without selecting the preceding section", async () =
   fireEvent.scroll(readingPane);
   await waitFor(() => expect(ref.current?.getSelectedOperation()?.id).toBe(sections[1].dataset.opSection));
   expect(change).not.toHaveBeenCalled();
+  expect(activeChange).toHaveBeenLastCalledWith(expect.objectContaining({ id: sections[1].dataset.opSection }));
+  const calls = activeChange.mock.calls.length;
+  fireEvent.scroll(readingPane);
+  await new Promise(resolve => setTimeout(resolve, 40));
+  expect(activeChange).toHaveBeenCalledTimes(calls);
 });
 
 
