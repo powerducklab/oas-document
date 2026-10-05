@@ -273,3 +273,9 @@ MIT © [powerduck](https://www.powerduck.com)
 ### Embedding in an application with a shared theme
 
 Pass `controlledTheme="light"` or `controlledTheme="dark"` to follow your application's theme store. Changes apply without reloading the document. Set `header={{ showThemeToggle: false }}` when the host supplies the appearance control. The existing `theme` prop remains the initial standalone theme and retains local preference behavior.
+
+### A2A agent operations
+
+Operations with `x-protocol: a2a` and `x-a2a` render an agent protocol section instead of being identified as ordinary REST endpoints. The extension stores `version` (`1.0` or `0.3`), `binding` (`JSONRPC`, `HTTP+JSON`, `GRPC`), the actual `endpoint`, version-specific `method`, optional `agentCardUrl` / `agentCard` snapshot, `example` (JSON-RPC envelope or direct REST/gRPC request), and independent `requestSchema` / `responseSchema` contracts. These Powerduck extensions are not part of the A2A standard itself.
+
+HTTP request snippets use the configured endpoint and include `A2A-Version` and the appropriate Accept header. A2A 1.0 REST requests share the verb/path/query projection with Debug. Unsupported bindings or versions do not produce misleading HTTP snippets. Copy for LLM preserves the documented extension and schemas. Displaying an Agent Card does not verify its signature or establish a connection to the agent. See the [A2A guide](https://www.powerduck.com/docs/client/a2a).

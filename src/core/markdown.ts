@@ -34,7 +34,7 @@ function responseStructure(document: OpenApiDocument, value: unknown, ancestors 
 /** Concise documentation: description, selected client request, and one primary response. */
 export function buildOperationMarkdown(document: OpenApiDocument, operation: OasOperation, selectedServer?: string, options: OperationMarkdownOptions = {}): string {
   const raw = operation.raw as Record<string, any>;
-  const protocol = ["websocket", "grpc", "graphql", "mcp", "sse"].find(name => raw["x-protocol"] === name || raw[`x-${name}`]);
+  const protocol = ["websocket", "grpc", "graphql", "mcp", "sse", "a2a"].find(name => raw["x-protocol"] === name || raw[`x-${name}`]);
   if (protocol) {
     const config = raw[`x-${protocol}`] ?? {};
     const sections = [`# ${(operation.summary || operation.path).replace(/[\r\n]/g, " ")}`, `${protocol.toUpperCase()} ${operation.path}`];

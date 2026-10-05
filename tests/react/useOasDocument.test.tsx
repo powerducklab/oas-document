@@ -36,3 +36,33 @@ it("follows a controlled theme over storage without reloading the document", asy
   expect(mocks.load.mock.calls.length).toBe(calls);
   localStorage.removeItem("pde-oas-theme");
 });
+
+it("shares parsing across independent preview and publish readers but not selection", async () => {
+  mocks.load.mockClear();
+  mocks.load.mockResolvedValue(result("Shared"));
+  const first = renderHook(() => useOasDocument("shared-inline-spec"));
+  const second = renderHook(() => useOasDocument("shared-inline-spec"));
+  await waitFor(() => expect(first.result.current.loading).toBe(false));
+  await waitFor(() => expect(second.result.current.loading).toBe(false));
+  expect(mocks.load).toHaveBeenCalledTimes(1);
+  expect(first.result.current.document).toBe(second.result.current.document);
+  first.unmount(); second.unmount();
+});
+
+it("does not cache failed loads or URL inputs", async () => {
+  mocks.load.mockClear();
+  mocks.load.mockResolvedValue({ ...result("Failed"), error: new Error("invalid") });
+  const failed = renderHook(() => useOasDocument("retry-inline-spec"));
+  await waitFor(() => expect(failed.result.current.loading).toBe(false));
+  failed.unmount();
+  mocks.load.mockResolvedValue(result("Recovered"));
+  const retry = renderHook(() => useOasDocument("retry-inline-spec"));
+  await waitFor(() => expect(retry.result.current.document?.info.title).toBe("Recovered"));
+  expect(mocks.load).toHaveBeenCalledTimes(2);
+  retry.unmount();
+  const a = renderHook(() => useOasDocument("https://example.test/openapi.json"));
+  const b = renderHook(() => useOasDocument("https://example.test/openapi.json"));
+  await waitFor(() => expect(a.result.current.loading || b.result.current.loading).toBe(false));
+  expect(mocks.load).toHaveBeenCalledTimes(4);
+  a.unmount(); b.unmount();
+});

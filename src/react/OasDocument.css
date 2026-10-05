@@ -339,6 +339,10 @@
 
 .pde-oas-operation-section {
   display: grid;
+  /* Retain measured offscreen sizes without relaying out every expanded API
+     on each sidebar pointer move. Visible sections still resize immediately. */
+  content-visibility: auto;
+  contain-intrinsic-block-size: auto 600px;
   grid-template-columns: minmax(0, 1fr) minmax(380px, 480px);
   gap: var(--pde-space-10);
   padding: var(--pde-space-8) 0;
@@ -1817,7 +1821,7 @@
   height: var(--control-height-md); border-radius: var(--radius-md);
   background: var(--color-surface-subtle); border: 1px solid var(--color-border-subtle);
 }
-.pde-oas-root .pde-tree-nodeRow { border-radius: var(--radius-md); min-height: 30px; }
+.pde-oas-root .pde-tree-nodeRow { border-radius: var(--radius-md); min-height: 28px; height: 28px; }
 .pde-oas-root .pde-tree-nodeRowSelected { background: var(--color-surface-selected); }
 .pde-oas-root .pde-tree-nodeRowSelected::before { background: var(--color-accent); left: 0; }
 .pde-oas-root .pde-tree-methodGet { color: var(--pde-method-get-text); background: var(--pde-method-get-bg); }
@@ -2031,3 +2035,15 @@
 
 .pde-oas-contracts > .pde-oas-section { margin: 0; padding: 16px; border: 1px solid var(--pde-oas-border); border-radius: 8px; }
 .pde-oas-contracts h4 { margin: 0 0 12px; font-size: 14px; font-weight: 600; }
+
+/* Reserve reading space while offscreen schema trees remain unmounted. */
+.pde-oas-details-placeholder {
+  min-height: 320px;
+}
+
+/* Both palettes are generated once; theme changes only switch CSS colors. */
+.pde-oas-highlighted-code[data-code-theme="dark"] .shiki,
+.pde-oas-highlighted-code[data-code-theme="dark"] .shiki span {
+  color: var(--shiki-dark) !important;
+  background-color: var(--shiki-dark-bg) !important;
+}

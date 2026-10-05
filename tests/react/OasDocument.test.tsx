@@ -285,3 +285,51 @@ it("displays the effective operation server alongside the path", async () => {
   const { container } = render(<OasDocument input={input as never} />);
   await waitFor(() => expect(container.querySelector(".pde-oas-path-code")?.textContent).toBe("https://eu.example.com/v3/pets"));
 });
+
+it('shows native A2A gRPC request details instead of an empty HTTP sample', async () => {
+  vi.stubGlobal('IntersectionObserver', undefined);
+  try {
+  const input = {
+    openapi: '3.2.0', info: {title:'Agent',version:'1'},
+    paths: {'/agent': {post: {
+      summary: 'Native agent', 'x-protocol': 'a2a',
+      'x-a2a': {version:'1.0',binding:'GRPC',endpoint:'http://localhost:9998',method:'SendMessage',example:{message:{messageId:'example'}}},
+      responses: {'200': {description:'Message'}},
+    }}},
+  };
+  render(<OasDocument input={input as never} />);
+  expect(await screen.findByText('gRPC · ProtoJSON request · use a native gRPC client')).toBeInTheDocument();
+  expect(screen.queryByLabelText('HTTP client')).not.toBeInTheDocument();
+  } finally { vi.unstubAllGlobals(); }
+});
+
+it("keeps all large-document anchors but mounts schema details only near the viewport", async () => {
+  const callbacks: IntersectionObserverCallback[] = [];
+  vi.stubGlobal("IntersectionObserver", class {
+    constructor(callback: IntersectionObserverCallback) { callbacks.push(callback); }
+    observe() {} unobserve() {} disconnect() {}
+  });
+  try {
+    const paths = Object.fromEntries(Array.from({ length: 100 }, (_, i) => [`/items/${i}`, { get: {
+      summary: `Endpoint ${i}`, operationId: `endpoint${i}`,
+      parameters: [{ name: `parameter_${i}`, in: "query" as const, schema: { type: "string" as const } }],
+      responses: { "200": { description: "OK" } },
+    } }]));
+    const ref = createRef<OasDocumentHandle>();
+    const view = render(<OasDocument ref={ref} input={{ openapi: "3.2.0", info: { title: "Large", version: "1" }, paths }} showCodeExamples={false} />);
+    await screen.findByRole("heading", { name: "Endpoint 99" });
+    expect(view.container.querySelectorAll('[data-op-section]')).toHaveLength(100);
+    expect(view.container.querySelectorAll('.pde-oas-details-placeholder')).toHaveLength(100);
+    expect(screen.queryByText('parameter_99')).not.toBeInTheDocument();
+    const section = view.container.querySelectorAll<HTMLElement>('[data-op-section]')[99];
+    const scroll = vi.fn();
+    section.scrollIntoView = scroll;
+    act(() => ref.current?.scrollToOperation(section.dataset.opSection));
+    expect(scroll).toHaveBeenCalledWith({ behavior: 'auto', block: 'start' });
+    const target = view.container.querySelectorAll('.pde-oas-deferred-details')[99];
+    act(() => callbacks.forEach(callback => callback([{ target, isIntersecting: true }] as IntersectionObserverEntry[], {} as IntersectionObserver)));
+    expect(screen.getByText('parameter_99')).toBeInTheDocument();
+    expect(screen.queryByText('parameter_0')).not.toBeInTheDocument();
+    view.unmount();
+  } finally { vi.unstubAllGlobals(); }
+});

@@ -19,3 +19,13 @@ it("keeps oversized examples readable without expensive highlighting", () => {
   expect(container.textContent).toBe(code);
   expect(mocks.codeToHtml).not.toHaveBeenCalled();
 });
+it("switches palettes without retokenizing or clearing the highlighted DOM", async () => {
+  const view = render(<HighlightedCode code="theme switch sample" language="json" theme="light" />);
+  await waitFor(() => expect(view.container.querySelector('[data-code-theme="light"]')).not.toBeNull());
+  const highlighted = view.container.querySelector('pre');
+  mocks.codeToHtml.mockClear();
+  view.rerender(<HighlightedCode code="theme switch sample" language="json" theme="dark" />);
+  expect(view.container.querySelector('[data-code-theme="dark"]')).not.toBeNull();
+  expect(view.container.querySelector('pre')).toBe(highlighted);
+  expect(mocks.codeToHtml).not.toHaveBeenCalled();
+});

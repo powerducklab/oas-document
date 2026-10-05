@@ -37,7 +37,7 @@ export function observeNearby(element: Element, root: Element, reveal: () => voi
 }
 
 /** Defers code generation and highlighting until the section approaches view. */
-export function DeferredContent({ children }: { children: ReactNode }) {
+export function DeferredContent({ children, kind = "code" }: { children: ReactNode; kind?: "code" | "details" }) {
   const ref = useRef<HTMLDivElement>(null);
   const [ready, setReady] = useState(false);
   useEffect(() => {
@@ -49,7 +49,7 @@ export function DeferredContent({ children }: { children: ReactNode }) {
     }
     return observeNearby(element, root, () => setReady(true));
   }, []);
-  return <div ref={ref} className="pde-oas-deferred-code">
-    {ready ? children : <div className="pde-oas-code-placeholder" aria-hidden="true">Code example</div>}
+  return <div ref={ref} className={`pde-oas-deferred-${kind}`}>
+    {ready ? children : <div className={`pde-oas-${kind}-placeholder`} aria-hidden="true">{kind === "code" ? "Code example" : null}</div>}
   </div>;
 }

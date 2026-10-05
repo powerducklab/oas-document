@@ -12,6 +12,29 @@ import type { Oas32Document } from "@powerduck/openapi-parser";
 
 import type { TreeNode } from "@powerduck/tree";
 
+// Chat preview and published docs consume the same immutable source text.
+// Share in-flight normalization, bounded to two source versions. Never cache
+// URL inputs (the remote document may change) or mutable object inputs.
+const loads = new Map<string, ReturnType<typeof loadOasDocument>>();
+function loadShared(input: OpenApiInput, autoUpgrade: boolean) {
+  if (typeof input !== "string" || /^(?:https?:|file:)/i.test(input.trim())) {
+    return loadOasDocument(input, { autoUpgrade });
+  }
+  const key = `${autoUpgrade}:` + input;
+  const cached = loads.get(key);
+  if (cached) {
+    loads.delete(key);
+    loads.set(key, cached);
+    return cached;
+  }
+  const pending = loadOasDocument(input, { autoUpgrade });
+  loads.set(key, pending);
+  if (loads.size > 2) loads.delete(loads.keys().next().value!);
+  const discard = () => { if (loads.get(key) === pending) loads.delete(key); };
+  void pending.then(result => { if (result.error) discard(); }, discard);
+  return pending;
+}
+
 /* -------------------------------------------------------------------------- */
 /* Options & result types                                                      */
 /* -------------------------------------------------------------------------- */
@@ -129,7 +152,7 @@ export function useOasDocument(
       return;
     }
 
-    loadOasDocument(input as OpenApiInput, { autoUpgrade })
+    loadShared(input as OpenApiInput, autoUpgrade)
       .then((result) => {
         if (cancelled) {
           return;

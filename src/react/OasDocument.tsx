@@ -1,9 +1,12 @@
+import { a2aCodegenInput } from "../core/a2a";
 import { ProtocolDetails, protocolName, ProtocolGlyph } from "./components/ProtocolDetails";
 import "@powerduck/tree/react/index.css";
 import "@powerduck/md-editor/dist/style.css";
 import "./OasDocument.css";
 
 import {
+  createContext,
+  useContext,
   forwardRef,
   memo,
   useCallback,
@@ -1101,12 +1104,13 @@ function ResponsesSection({ operation, document }: ResponsesSectionProps) {
    Code examples panel (request dark + response light)
    ========================================================================== */
 
+const CodeThemeContext = createContext<"light" | "dark">("light");
+
 type CodeExamplesPanelProps = {
   operation: OasOperation;
   serverUrl: string;
   document: OasRootDocument;
   languageGroups: Map<string, string[]>;
-  theme: "light" | "dark";
   onRequestClose?: () => void;
 };
 
@@ -1115,9 +1119,9 @@ function CodeExamplesPanel({
   serverUrl,
   document,
   languageGroups,
-  theme,
   onRequestClose,
 }: CodeExamplesPanelProps) {
+  const theme = useContext(CodeThemeContext);
   const languages = useMemo(
     () => Array.from(languageGroups.keys()),
     [languageGroups],
@@ -1153,24 +1157,31 @@ function CodeExamplesPanel({
   }, [responseEntries]);
 
   /* ---- Request code via @powerduck/openapi-codegen ---------------------- */
+  const a2aConfig = (operation.raw as Record<string, any>)["x-a2a"];
+  const nativeA2A = a2aConfig?.binding === "GRPC";
   const requestCode = useMemo(() => {
+    if (nativeA2A) {
+      return JSON.stringify({
+        endpoint: a2aConfig.endpoint || serverUrl,
+        service: "a2a.v1.A2AService",
+        method: a2aConfig.method || "SendMessage",
+        request: a2aConfig.example ?? {},
+      }, null, 2);
+    }
     if (!language || !client) {
       return "";
     }
 
     try {
       return generate({
-        document,
-        path: operation.path,
-        method: operation.method,
+        ...a2aCodegenInput(document, operation, serverUrl),
         language,
         client,
-        serverUrl,
       });
     } catch {
       return "";
     }
-  }, [document, operation.path, operation.method, language, client, serverUrl]);
+  }, [document, operation, language, client, serverUrl, nativeA2A, a2aConfig]);
 
   const responseBody = useMemo(() => {
     const entry = responseEntries.find(([status]) => status === activeStatus);
@@ -1212,10 +1223,12 @@ function CodeExamplesPanel({
       <div className="pde-oas-request-card">
         <div className="pde-oas-request-card-header">
           <div className="pde-oas-language-selectors">
+            {nativeA2A ? <span>gRPC · ProtoJSON request · use a native gRPC client</span> : <>
             <ReferenceSelect label="Code language" variant="language" theme={theme}
               value={language} options={languageOptions} onChange={handleLanguageChange} />
             <ReferenceSelect label="HTTP client" theme={theme}
               value={client} options={clientOptions} onChange={(next) => setSelection({ language, client: next })} />
+            </>}
           </div>
 
           <div className="pde-oas-request-card-actions">
@@ -1238,7 +1251,7 @@ function CodeExamplesPanel({
           <div className="pde-oas-code-scroll" role="region" aria-label="Code sample" tabIndex={0}>
               <HighlightedCode
                 code={requestCode}
-                language={mapLanguageToShikiLang(language)}
+                language={nativeA2A ? "json" : mapLanguageToShikiLang(language)}
                 theme={theme}
               />
             </div>
@@ -1314,7 +1327,8 @@ function operationEndpoint(operation: OasOperation, serverUrl: string): string {
   const explicit = protocol === "grpc" ? raw["x-grpc"]?.address
     : protocol === "websocket" ? raw["x-websocket"]?.url
     : protocol === "graphql" ? raw["x-graphql"]?.endpoint
-    : protocol === "mcp" ? raw["x-mcp"]?.endpoint : undefined;
+    : protocol === "mcp" ? raw["x-mcp"]?.endpoint
+    : protocol === "a2a" ? raw["x-a2a"]?.endpoint : undefined;
   if (typeof explicit === "string" && explicit) return explicit;
   const base = protocol === "websocket" ? serverUrl.replace(/^http/, "ws") : serverUrl;
   return `${base.replace(/\/$/, "")}${operation.path}`;
@@ -1325,12 +1339,12 @@ type OperationSectionProps = {
   document: OasRootDocument;
   serverUrl: string;
   languageGroups: Map<string, string[]>;
-  theme: "light" | "dark";
   showCodeColumn: boolean;
   showCodeExamples: boolean;
   instanceId: string;
   onEditOperation?: (operation: OasOperation) => void;
   editOperationLabel?: string;
+  deferDetails: boolean;
 };
 
 const OperationSection = memo(function OperationSection({
@@ -1338,13 +1352,39 @@ const OperationSection = memo(function OperationSection({
   document,
   serverUrl,
   languageGroups,
-  theme,
   showCodeColumn,
   showCodeExamples,
   instanceId,
   onEditOperation,
   editOperationLabel,
+  deferDetails,
 }: OperationSectionProps) {
+  const details = useMemo(() => <>
+        {operation.parameters.length > 0 ? (
+          <section className="pde-oas-section">
+            <SectionHeader
+              title="Parameters"
+              description="Parameters accepted by this endpoint."
+              count={operation.parameters.length}
+            />
+
+            <div className="pde-oas-field-list">
+              {operation.parameters.map((parameter) => (
+                <ParameterRow
+                  key={`${parameter.in}-${parameter.name}`}
+                  parameter={parameter}
+                  document={document}
+                />
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        <ProtocolDetails operation={operation} renderSchema={(schema) => <SchemaBlock schema={schema} document={document} />}/>
+        <RequestBodySection operation={operation} document={document} />
+
+        <ResponsesSection operation={operation} document={document} />
+  </>, [operation, document]);
   return (
     <section
       id={`${instanceId}-operation-${operation.id}`}
@@ -1388,43 +1428,19 @@ const OperationSection = memo(function OperationSection({
           ) : null}
         </header>
 
-        {operation.parameters.length > 0 ? (
-          <section className="pde-oas-section">
-            <SectionHeader
-              title="Parameters"
-              description="Parameters accepted by this endpoint."
-              count={operation.parameters.length}
-            />
-
-            <div className="pde-oas-field-list">
-              {operation.parameters.map((parameter) => (
-                <ParameterRow
-                  key={`${parameter.in}-${parameter.name}`}
-                  parameter={parameter}
-                  document={document}
-                />
-              ))}
-            </div>
-          </section>
-        ) : null}
-
-        <ProtocolDetails operation={operation} renderSchema={(schema) => <SchemaBlock schema={schema} document={document} />}/>
-        <RequestBodySection operation={operation} document={document} />
-
-        <ResponsesSection operation={operation} document={document} />
+        {deferDetails ? <DeferredContent kind="details">{details}</DeferredContent> : details}
       </div>
 
-      {showCodeColumn && showCodeExamples && ["http","sse"].includes(protocolName(operation.raw)) ? (
+      {showCodeColumn && showCodeExamples && ["http","sse","a2a"].includes(protocolName(operation.raw)) ? (
         <div className="pde-oas-code-column">
           <div className="pde-oas-code-sticky">
-            <OperationExportActions document={document} operation={operation} serverUrl={serverUrl} />
             <DeferredContent>
+            <OperationExportActions document={document} operation={operation} serverUrl={serverUrl} />
             <CodeExamplesPanel
               operation={operation}
               serverUrl={serverUrl}
               document={document}
               languageGroups={languageGroups}
-              theme={theme}
             />
             </DeferredContent>
           </div>
@@ -1681,8 +1697,8 @@ function OasDocumentImpl(
   const scrollToSection = useCallback((id: string) => {
     const section = Array.from(contentRef.current?.querySelectorAll<HTMLElement>("[data-op-section]") ?? [])
       .find((element) => element.dataset.opSection === id);
-    section?.scrollIntoView?.({ behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
-  }, []);
+    section?.scrollIntoView?.({ behavior: operations.length > 80 || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+  }, [operations.length]);
 
   /* ---- Generator options grouped by language (stable) ------------------- */
   const languageGroups = useMemo(() => getLanguageGroups(), []);
@@ -1954,6 +1970,7 @@ function OasDocumentImpl(
           renderIcon={renderTreeIcon}
           onSelect={handleTreeSelect}
           variant="doc"
+          virtualized
           searchable
           searchPlaceholder="Find anything"
           defaultExpandDepth={2}
@@ -1996,12 +2013,12 @@ function OasDocumentImpl(
           document={document}
           serverUrl={operationServerUrl(document, operation, selectedServerUrl)}
           languageGroups={languageGroups}
-          theme={theme}
           showCodeColumn={showCodeColumn}
           showCodeExamples={showCodeExamples}
           instanceId={instanceId}
           onEditOperation={onEditOperation}
-          editOperationLabel={editOperationLabel}
+          editOperationLabel={protocolName(operation.raw) === "http" ? undefined : editOperationLabel}
+          deferDetails={orderedOperations.length > 80}
         />
       ))}
     </div>
@@ -2010,6 +2027,7 @@ function OasDocumentImpl(
   /* ---- Desktop layout --------------------------------------------------- */
 
   return (
+    <CodeThemeContext.Provider value={theme}>
     <div
       ref={rootRef}
       className={rootClassName}
@@ -2033,7 +2051,7 @@ function OasDocumentImpl(
         <Drawer open={isCodeOpen} onClose={() => setCodeOpen(false)} label="Code examples" side="right">
           {selectedOperation ? <CodeExamplesPanel
             operation={selectedOperation} serverUrl={operationServerUrl(document, selectedOperation, selectedServerUrl)}
-            document={document} languageGroups={languageGroups} theme={theme}
+            document={document} languageGroups={languageGroups}
           /> : null}
         </Drawer>
       </> : null}
@@ -2093,6 +2111,7 @@ function OasDocumentImpl(
         </div>
       )}
     </div>
+    </CodeThemeContext.Provider>
   );
 }
 

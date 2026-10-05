@@ -56,7 +56,7 @@ export function HighlightedCode({
   className,
 }: HighlightedCodeProps) {
   const [result, setResult] = useState({ key: "", html: "" });
-  const key = JSON.stringify([code, language, theme]);
+  const key = JSON.stringify([code, language]);
   const html = result.key === key ? result.html : "";
 
   useEffect(() => {
@@ -72,7 +72,7 @@ export function HighlightedCode({
         try {
           const result = highlighter.codeToHtml(code, {
             lang: language,
-            theme: theme === "dark" ? "github-dark" : "github-light",
+            themes: { light: "github-light", dark: "github-dark" },
           });
           if (!cancelled) {
             cacheHighlight(key, result);
@@ -89,11 +89,12 @@ export function HighlightedCode({
     return () => {
       cancelled = true;
     };
-  }, [code, language, theme, key]);
+  }, [code, language, key]);
 
   if (html) {
     return (
       <div
+        data-code-theme={theme}
         className={cn("pde-oas-highlighted-code", className)}
         dangerouslySetInnerHTML={{ __html: html }}
       />

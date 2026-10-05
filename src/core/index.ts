@@ -48,3 +48,5 @@ export {
 } from "./resolver";
 
 export * from "./markdown";
+
+export { a2aHttpRequest } from "./a2a";
