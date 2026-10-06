@@ -1,6 +1,6 @@
 {
   "name": "@powerduck/oas-document",
-  "version": "0.1.14",
+  "version": "0.1.15",
   "description": "Production-grade OpenAPI documentation component. Pass an OAS document and get a full API documentation UI with tree navigation, auto-upgrade to OAS 3.2, and code examples.",
   "license": "MIT",
   "author": "powerduck",
@@ -43,7 +43,6 @@
   },
   "scripts": {
     "build": "tsup",
-    "postbuild": "ln -sf /Users/electron/powerduck-react/node_modules/react node_modules/react && ln -sf /Users/electron/powerduck-react/node_modules/react-dom node_modules/react-dom",
     "dev": "tsup --watch",
     "clean": "rm -rf dist coverage",
     "typecheck": "tsc --noEmit",
