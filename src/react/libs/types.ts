@@ -81,6 +81,8 @@ export interface OasDocumentProps {
   onActiveOperationChange?: (operation: OasOperation) => void;
   /** Host-owned editor; omitted in published read-only documentation. */
   onEditOperation?: (operation: OasOperation) => void;
+  /** Host-only operation controls; omitted in public/exported documentation. */
+  renderOperationStatus?: (operation: OasOperation) => ReactNode;
   editOperationLabel?: string;
 
   /** Extra class name applied to the root element. */

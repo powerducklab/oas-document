@@ -71,7 +71,7 @@ describe("operation Markdown", () => {
     const doc = fixture();
     Object.assign(doc.paths!["/pets"]!.get!, { description: "Use **metadata** to attach values.", responses: { "204": { description: "Deleted" } } });
     expect(exportDoc(doc)).toContain("Use **metadata** to attach values.");
-    expect(exportDoc(doc)).toContain("No response body.");
+    expect(exportDoc(doc)).toContain("No response body is documented.");
   });
   it("generates the selected client language", () => {
     const doc = fixture();

@@ -110,7 +110,7 @@ export function buildOperationMarkdown(document: OpenApiDocument, operation: Oas
     } else if (schema !== undefined) {
       sections.push("Response structure:", codeBlock(JSON.stringify(responseStructure(document, schema), null, 2), "json"));
     } else {
-      sections.push(response.content ? "No response example or schema is documented." : "No response body.");
+      sections.push(response.content ? "No response example or schema is documented." : "No response body is documented.");
     }
     if (responses.length > 1) sections.push("Other responses: " + responses.slice(1).map(([code, item]) => `${code}${item.description ? ` — ${item.description.replace(/\s+/g, " ")}` : ""}`).join("; ") + ".");
   }

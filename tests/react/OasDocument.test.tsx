@@ -333,3 +333,12 @@ it("keeps all large-document anchors but mounts schema details only near the vie
     view.unmount();
   } finally { vi.unstubAllGlobals(); }
 });
+
+it('renders operation review controls only when the host explicitly opts in', async () => {
+  const status = vi.fn((operation: any) => <button>Review {operation.method} {operation.path}</button>);
+  const view = render(<OasDocument input={fixtureDoc as any} renderOperationStatus={status} />);
+  expect(await screen.findByRole('button', {name:'Review get /users'})).toBeDefined();
+  expect(status).toHaveBeenCalled();
+  view.rerender(<OasDocument input={fixtureDoc as any} />);
+  await waitFor(()=>expect(screen.queryByRole('button',{name:'Review get /users'})).toBeNull());
+});

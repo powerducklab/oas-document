@@ -1088,7 +1088,7 @@ function ResponsesSection({ operation, document }: ResponsesSectionProps) {
               ) : (
                 <div className="pde-oas-panel-card-body">
                   <p className="pde-oas-empty-section-text">
-                    No response body.
+                    No response body is documented.
                   </p>
                 </div>
               )}
@@ -1302,7 +1302,7 @@ function CodeExamplesPanel({
         ) : (
           <div className="pde-oas-code-block-response pde-oas-code-block-empty">
             <p className="pde-oas-empty-section-text">
-              No response body defined
+              No response body is documented.
             </p>
           </div>
         )}
@@ -1343,6 +1343,7 @@ type OperationSectionProps = {
   showCodeExamples: boolean;
   instanceId: string;
   onEditOperation?: (operation: OasOperation) => void;
+  renderOperationStatus?: (operation: OasOperation) => ReactNode;
   editOperationLabel?: string;
   deferDetails: boolean;
 };
@@ -1356,6 +1357,7 @@ const OperationSection = memo(function OperationSection({
   showCodeExamples,
   instanceId,
   onEditOperation,
+  renderOperationStatus,
   editOperationLabel,
   deferDetails,
 }: OperationSectionProps) {
@@ -1406,6 +1408,7 @@ const OperationSection = memo(function OperationSection({
             ) : null}
           </div>
 
+          {renderOperationStatus?.(operation)}
           {onEditOperation && protocolName(operation.raw) !== "http" && <button type="button" className="pde-oas-edit-documentation" onClick={() => onEditOperation(operation)}>{editOperationLabel}</button>}
           <h2 className="pde-oas-operation-title">
             {operation.summary || operation.operationId || operation.path}
@@ -1597,6 +1600,7 @@ function OasDocumentImpl(
     onOperationChange,
     onActiveOperationChange,
     onEditOperation,
+  renderOperationStatus,
     editOperationLabel = "Edit documentation",
     className,
     style,
@@ -2017,6 +2021,7 @@ function OasDocumentImpl(
           showCodeExamples={showCodeExamples}
           instanceId={instanceId}
           onEditOperation={onEditOperation}
+          renderOperationStatus={renderOperationStatus}
           editOperationLabel={protocolName(operation.raw) === "http" ? undefined : editOperationLabel}
           deferDetails={orderedOperations.length > 80}
         />
