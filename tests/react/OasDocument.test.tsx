@@ -303,35 +303,34 @@ it('shows native A2A gRPC request details instead of an empty HTTP sample', asyn
   } finally { vi.unstubAllGlobals(); }
 });
 
-it("keeps all large-document anchors but mounts schema details only near the viewport", async () => {
-  const callbacks: IntersectionObserverCallback[] = [];
-  vi.stubGlobal("IntersectionObserver", class {
-    constructor(callback: IntersectionObserverCallback) { callbacks.push(callback); }
-    observe() {} unobserve() {} disconnect() {}
-  });
+it("bounds mounted sections and navigates to an initially unmounted operation", async () => {
+  const height = vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockReturnValue(600);
+  const width = vi.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockReturnValue(900);
+  const scrollHeight = vi.spyOn(HTMLElement.prototype, "scrollHeight", "get").mockReturnValue(600000);
+  const previousScroll = HTMLElement.prototype.scrollTo;
+  HTMLElement.prototype.scrollTo = function(options: any) {
+    this.scrollTop = options.top || 0;
+    this.dispatchEvent(new Event("scroll"));
+  };
   try {
-    const paths = Object.fromEntries(Array.from({ length: 100 }, (_, i) => [`/items/${i}`, { get: {
+    const paths = Object.fromEntries(Array.from({ length: 1000 }, (_, i) => [`/items/${i}`, { get: {
       summary: `Endpoint ${i}`, operationId: `endpoint${i}`,
-      parameters: [{ name: `parameter_${i}`, in: "query" as const, schema: { type: "string" as const } }],
       responses: { "200": { description: "OK" } },
     } }]));
     const ref = createRef<OasDocumentHandle>();
     const view = render(<OasDocument ref={ref} input={{ openapi: "3.2.0", info: { title: "Large", version: "1" }, paths }} showCodeExamples={false} />);
-    await screen.findByRole("heading", { name: "Endpoint 99" });
-    expect(view.container.querySelectorAll('[data-op-section]')).toHaveLength(100);
-    expect(view.container.querySelectorAll('.pde-oas-details-placeholder')).toHaveLength(100);
-    expect(screen.queryByText('parameter_99')).not.toBeInTheDocument();
-    const section = view.container.querySelectorAll<HTMLElement>('[data-op-section]')[99];
-    const scroll = vi.fn();
-    section.scrollIntoView = scroll;
-    act(() => ref.current?.scrollToOperation(section.dataset.opSection));
-    expect(scroll).toHaveBeenCalledWith({ behavior: 'auto', block: 'start' });
-    const target = view.container.querySelectorAll('.pde-oas-deferred-details')[99];
-    act(() => callbacks.forEach(callback => callback([{ target, isIntersecting: true }] as IntersectionObserverEntry[], {} as IntersectionObserver)));
-    expect(screen.getByText('parameter_99')).toBeInTheDocument();
-    expect(screen.queryByText('parameter_0')).not.toBeInTheDocument();
+    await screen.findByRole("heading", { name: "Endpoint 0" });
+    expect(view.container.querySelectorAll('[data-op-section]').length).toBeLessThan(12);
+    expect(screen.queryByRole("heading", {name: "Endpoint 999"})).not.toBeInTheDocument();
+    expect(ref.current?.getOperations()).toHaveLength(1000);
+    act(() => { expect(ref.current?.selectOperation("endpoint999")).toBe(true); });
+    await screen.findByRole("heading", {name: "Endpoint 999"});
+    expect(view.container.querySelectorAll('[data-op-section]').length).toBeLessThan(12);
     view.unmount();
-  } finally { vi.unstubAllGlobals(); }
+  } finally {
+    height.mockRestore(); width.mockRestore(); scrollHeight.mockRestore();
+    HTMLElement.prototype.scrollTo = previousScroll;
+  }
 });
 
 it('renders operation review controls only when the host explicitly opts in', async () => {

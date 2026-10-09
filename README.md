@@ -242,7 +242,7 @@ By default, `autoUpgrade` is `true`. The input is validated and upgraded to Open
 - **Shiki LRU cache** — syntax highlighting cache limited to 64 entries / 1MB; grammars load on demand; code over 50KB renders as plain text
 - **Scroll-spy** — passive scroll listener with rAF throttling and binary search (O(log n)) over section positions
 - **Example generation budget** — bounded to 6 nesting levels and 1,000-node traversal budget; explicit examples take precedence
-- **No full-page virtualization** — layout cost scales with document complexity; for very large APIs, consider paginating or using the core entry to build a custom shell
+- **Large-document virtualization** — documents with more than 80 operations mount only nearby sections; use the imperative navigation handle to reach off-screen operations
 
 Treat input objects as immutable and pass a new object when the document changes.
 
@@ -279,3 +279,7 @@ Pass `controlledTheme="light"` or `controlledTheme="dark"` to follow your applic
 Operations with `x-protocol: a2a` and `x-a2a` render an agent protocol section instead of being identified as ordinary REST endpoints. The extension stores `version` (`1.0` or `0.3`), `binding` (`JSONRPC`, `HTTP+JSON`, `GRPC`), the actual `endpoint`, version-specific `method`, optional `agentCardUrl` / `agentCard` snapshot, `example` (JSON-RPC envelope or direct REST/gRPC request), and independent `requestSchema` / `responseSchema` contracts. These Powerduck extensions are not part of the A2A standard itself.
 
 HTTP request snippets use the configured endpoint and include `A2A-Version` and the appropriate Accept header. A2A 1.0 REST requests share the verb/path/query projection with Debug. Unsupported bindings or versions do not produce misleading HTTP snippets. Copy for LLM preserves the documented extension and schemas. Displaying an Agent Card does not verify its signature or establish a connection to the agent. See the [A2A guide](https://www.powerduck.com/docs/client/a2a).
+
+## 0.1.17 — Large-document rendering
+
+Documents with more than 80 operations use a measured virtual list with bounded mounted sections. Tree selection and the imperative navigation handle scroll to operations that are not currently mounted. Scroll tracking reads the current mounted sections. Hosts should use the navigation handle instead of looking up off-screen DOM anchors.

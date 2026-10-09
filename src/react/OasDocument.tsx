@@ -1,3 +1,4 @@
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { a2aCodegenInput } from "../core/a2a";
 import { ProtocolDetails, protocolName, ProtocolGlyph } from "./components/ProtocolDetails";
 import "@powerduck/tree/react/index.css";
@@ -1698,11 +1699,46 @@ function OasDocumentImpl(
     } catch { setResolvedTreeWidth(280); }
   }, [treeWidth]);
 
+  /* ---- Content sections ordered to match the left-hand tree ------------- */
+  const orderedOperations = useMemo(
+    () => buildOrderedOperations(tree, operations),
+    [tree, operations],
+  );
+
+  const virtualized = orderedOperations.length > 80;
+  const listRef = useRef<HTMLDivElement | null>(null);
+  const [scrollMargin, setScrollMargin] = useState(0);
+  useEffect(() => {
+    const list = listRef.current;
+    const container = contentRef.current;
+    if (!list || !container || !virtualized) return;
+    const measure = () => setScrollMargin(list.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop);
+    measure();
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(measure);
+    if (list.previousElementSibling) observer?.observe(list.previousElementSibling);
+    observer?.observe(container);
+    return () => observer?.disconnect();
+  }, [virtualized, document, loading, isTablet, showTree]);
+  const virtualizer = useVirtualizer({
+    count: virtualized ? orderedOperations.length : 0,
+    getScrollElement: () => contentRef.current,
+    estimateSize: () => 600,
+    getItemKey: index => orderedOperations[index].id,
+    overscan: 2,
+    scrollMargin,
+    useFlushSync: false,
+  });
+
   const scrollToSection = useCallback((id: string) => {
+    if (virtualized) {
+      const index = orderedOperations.findIndex(operation => operation.id === id);
+      if (index >= 0) virtualizer.scrollToIndex(index, {align: "start"});
+      return;
+    }
     const section = Array.from(contentRef.current?.querySelectorAll<HTMLElement>("[data-op-section]") ?? [])
       .find((element) => element.dataset.opSection === id);
     section?.scrollIntoView?.({ behavior: operations.length > 80 || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
-  }, [operations.length]);
+  }, [operations.length, orderedOperations, virtualized, virtualizer]);
 
   /* ---- Generator options grouped by language (stable) ------------------- */
   const languageGroups = useMemo(() => getLanguageGroups(), []);
@@ -1737,12 +1773,6 @@ function OasDocumentImpl(
   /* ---- Operation -> tree node index (for scroll-spy locateNode) --------- */
   const operationTreeIndex = useMemo(
     () => buildOperationTreeIndex(tree, operations),
-    [tree, operations],
-  );
-
-  /* ---- Content sections ordered to match the left-hand tree ------------- */
-  const orderedOperations = useMemo(
-    () => buildOrderedOperations(tree, operations),
     [tree, operations],
   );
 
@@ -1792,12 +1822,13 @@ function OasDocumentImpl(
   useEffect(() => {
     const container = contentRef.current;
     if (!container || loading || operations.length === 0) return;
-    const sections = Array.from(container.querySelectorAll<HTMLElement>("[data-op-section]"));
-    if (!sections.length) return;
+
     let rafId = 0;
     const update = () => {
       rafId = 0;
       if (suppressScrollSpyRef.current) return;
+      const sections = Array.from(container.querySelectorAll<HTMLElement>("[data-op-section]"));
+      if (!sections.length) return;
       // Include the reading pane's padding and the section's scroll margin.
       const readingEdge = container.getBoundingClientRect().top + 64;
       let low = 0;
@@ -1994,6 +2025,23 @@ function OasDocumentImpl(
     </aside>
   );
 
+  const renderOperation = (operation: OasOperation) => (
+        <OperationSection
+          key={operation.id}
+          operation={operation}
+          document={document}
+          serverUrl={operationServerUrl(document, operation, selectedServerUrl)}
+          languageGroups={languageGroups}
+          showCodeColumn={showCodeColumn}
+          showCodeExamples={showCodeExamples}
+          instanceId={instanceId}
+          onEditOperation={onEditOperation}
+          renderOperationStatus={renderOperationStatus}
+          editOperationLabel={protocolName(operation.raw) === "http" ? undefined : editOperationLabel}
+          deferDetails={false}
+        />
+  );
+
   /* ---- Content ---------------------------------------------------------- */
   const content = (
     <div className="pde-oas-content" ref={contentRef} role="region" aria-label="API reference" tabIndex={0}>
@@ -2010,22 +2058,16 @@ function OasDocumentImpl(
         ) : null}
       </div>
 
-      {orderedOperations.map((operation) => (
-        <OperationSection
-          key={operation.id}
-          operation={operation}
-          document={document}
-          serverUrl={operationServerUrl(document, operation, selectedServerUrl)}
-          languageGroups={languageGroups}
-          showCodeColumn={showCodeColumn}
-          showCodeExamples={showCodeExamples}
-          instanceId={instanceId}
-          onEditOperation={onEditOperation}
-          renderOperationStatus={renderOperationStatus}
-          editOperationLabel={protocolName(operation.raw) === "http" ? undefined : editOperationLabel}
-          deferDetails={orderedOperations.length > 80}
-        />
-      ))}
+      {virtualized ? (
+        <div ref={listRef} style={{height: virtualizer.getTotalSize(), position: "relative"}}>
+          {virtualizer.getVirtualItems().map(row => (
+            <div key={row.key} data-index={row.index} ref={virtualizer.measureElement}
+              style={{position: "absolute", top: 0, left: 0, width: "100%", transform: `translateY(${row.start - scrollMargin}px)`}}>
+              {renderOperation(orderedOperations[row.index])}
+            </div>
+          ))}
+        </div>
+      ) : orderedOperations.map(renderOperation)}
     </div>
   );
 
