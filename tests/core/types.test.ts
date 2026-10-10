@@ -98,17 +98,8 @@ describe("isSchemaRecord", () => {
 /* -------------------------------------------------------------------------- */
 
 describe("HTTP_METHODS", () => {
-  it("contains all 8 supported HTTP methods", () => {
-    expect(HTTP_METHODS).toEqual([
-      "get",
-      "post",
-      "put",
-      "patch",
-      "delete",
-      "head",
-      "options",
-      "trace",
-    ]);
+  it("contains all 9 fixed OpenAPI 3.2 methods", () => {
+    expect(HTTP_METHODS).toEqual(['get','put','post','delete','options','head','patch','trace','query']);
   });
 });
 

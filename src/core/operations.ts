@@ -1,3 +1,4 @@
+import { operationEntries } from "@powerduck/openapi-parser/methods";
 import type {
   OpenApiDocument,
   OpenApiOperation,
@@ -49,8 +50,7 @@ export function parseOperations(document: OpenApiDocument): OasOperation[] {
       continue;
     }
 
-    for (const method of HTTP_METHODS) {
-      const rawOperation = getProperty(pathItem, method);
+    for (const [method, rawOperation] of operationEntries(pathItem)) {
 
       if (rawOperation === undefined || rawOperation === null) {
         continue;

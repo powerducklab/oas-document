@@ -66,15 +66,7 @@ export type OpenApiTag = TagObject;
 /**
  * Supported HTTP methods rendered by the documentation UI.
  */
-export type HttpMethod =
-  | "get"
-  | "post"
-  | "put"
-  | "patch"
-  | "delete"
-  | "head"
-  | "options"
-  | "trace";
+export type HttpMethod = string;
 
 /**
  * Normalized operation used by the documentation UI.

@@ -20,16 +20,7 @@ import {
 /* HTTP Methods                                                               */
 /* -------------------------------------------------------------------------- */
 
-export const HTTP_METHODS: readonly HttpMethod[] = [
-  "get",
-  "post",
-  "put",
-  "patch",
-  "delete",
-  "head",
-  "options",
-  "trace",
-];
+export { OPENAPI_METHODS as HTTP_METHODS } from "@powerduck/openapi-parser/methods";
 
 /**
  * Converts an HTTP method to uppercase.

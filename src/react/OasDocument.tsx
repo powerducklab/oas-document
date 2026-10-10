@@ -480,11 +480,11 @@ function OperationMethodLabel({
     <span
       className={cn(
         "pde-oas-method-label",
-        METHOD_CLASS_NAMES[method],
+        METHOD_CLASS_NAMES[method] ?? "",
         className,
       )}
     >
-      {className === "pde-oas-tree-method" ? ({ delete: "DEL", options: "OPT", patch: "PAT", connect: "CON", trace: "TRC" } as Record<string, string>)[method] ?? METHOD_LABELS[method] : METHOD_LABELS[method]}
+      {className === "pde-oas-tree-method" ? ({ delete: "DEL", options: "OPT", patch: "PAT", connect: "CON", trace: "TRC" } as Record<string, string>)[method] ?? (METHOD_LABELS[method] ?? method.toUpperCase()) : (METHOD_LABELS[method] ?? method.toUpperCase())}
     </span>
   );
 }

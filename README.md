@@ -292,3 +292,7 @@ limit. This prevents a small, repeatedly referenced schema from expanding into
 an out-of-memory failure in documentation preview or export. Generated examples
 may omit remaining properties when the budget is exhausted; the source schema
 and explicit examples are unchanged.
+
+### Extended HTTP methods
+
+HTTP operation discovery includes all nine fixed OpenAPI 3.2 methods (including `trace` and `query`) and custom verbs in `additionalOperations`, such as `PROPFIND`, `REPORT`, and `CUSTOM-VERB`. Shared method helpers come from `@powerduck/openapi-parser/methods`; path metadata is not interpreted as an operation. Custom verbs must be valid HTTP tokens. Use OpenAPI 3.2 when declaring QUERY or `additionalOperations`.
