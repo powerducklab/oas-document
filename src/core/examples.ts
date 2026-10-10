@@ -228,7 +228,18 @@ export function generateSchemaExample(
   depth = 0,
   visited = new Set<unknown>(),
 ): unknown {
-  if (input === undefined || input === null || depth > 8) {
+  return generateBoundedExample(document, input, depth, visited, { remaining: 10000 });
+}
+
+// Depth alone does not bound branching through shared $ref graphs.
+function generateBoundedExample(
+  document: OpenApiDocument | undefined,
+  input: unknown,
+  depth: number,
+  visited: Set<unknown>,
+  budget: { remaining: number },
+): unknown {
+  if (--budget.remaining < 0 || input === undefined || input === null || depth > 8) {
     return null;
   }
 
@@ -269,27 +280,31 @@ export function generateSchemaExample(
   }
 
   if (Array.isArray(schema.oneOf) && schema.oneOf.length > 0) {
-    return generateSchemaExample(
+    return generateBoundedExample(
       document,
       schema.oneOf[0],
       depth + 1,
       new Set(visited),
+      budget,
     );
   }
 
   if (Array.isArray(schema.anyOf) && schema.anyOf.length > 0) {
-    return generateSchemaExample(
+    return generateBoundedExample(
       document,
       schema.anyOf[0],
       depth + 1,
       new Set(visited),
+      budget,
     );
   }
 
   if (Array.isArray(schema.allOf) && schema.allOf.length > 0) {
-    const values = schema.allOf.map((item) =>
-      generateSchemaExample(document, item, depth + 1, new Set(visited)),
-    );
+    const values: unknown[] = [];
+    for (const item of schema.allOf) {
+      if (budget.remaining <= 0) break;
+      values.push(generateBoundedExample(document, item, depth + 1, new Set(visited), budget));
+    }
 
     return mergeExamples(values);
   }
@@ -297,17 +312,18 @@ export function generateSchemaExample(
   const type = schema.type;
 
   if (type === "object" || schema.properties) {
-    return generateObjectExample(document, schema, depth, visited);
+    return generateObjectExample(document, schema, depth, visited, budget);
   }
 
   if (type === "array") {
     return [
       schema.items
-        ? generateSchemaExample(
+        ? generateBoundedExample(
             document,
             schema.items,
             depth + 1,
             new Set(visited),
+            budget,
           )
         : null,
     ];
@@ -360,6 +376,7 @@ function generateObjectExample(
   schema: Record<string, unknown>,
   depth: number,
   visited: Set<unknown>,
+  budget: { remaining: number },
 ): Record<string, unknown> {
   const result: Record<string, unknown> = {};
 
@@ -370,11 +387,13 @@ function generateObjectExample(
   }
 
   for (const [name, property] of Object.entries(properties)) {
-    result[name] = generateSchemaExample(
+    if (budget.remaining <= 0) break;
+    result[name] = generateBoundedExample(
       document,
       property,
       depth + 1,
       new Set(visited),
+      budget,
     );
   }
 

@@ -387,3 +387,15 @@ describe("generateSchemaExample", () => {
     expect(result.body).toEqual({ name: "from-example" });
   });
 });
+
+it("bounds shared reference expansion across sibling branches", () => {
+  const schemas: Record<string, any> = { Leaf: { type: "string" } };
+  for (let i = 0; i < 8; i++) schemas[`N${i}`] = {
+    type: "object", properties: Object.fromEntries(Array.from({length: 20}, (_, j) =>
+      [`p${j}`, { $ref: `#/components/schemas/${i ? `N${i - 1}` : "Leaf"}` }])),
+  };
+  const doc = { openapi: "3.0.3", info: {title: "bounded", version: "1"}, paths: {}, components: {schemas} };
+  const result = generateSchemaExample(doc, { $ref: "#/components/schemas/N7" });
+  expect(JSON.stringify(result).length).toBeLessThan(200000);
+  expect(result).toHaveProperty("p0.p0.p0.p0.p0.p0.p0.p0", "string");
+});

@@ -283,3 +283,12 @@ HTTP request snippets use the configured endpoint and include `A2A-Version` and 
 ## 0.1.17 — Large-document rendering
 
 Documents with more than 80 operations use a measured virtual list with bounded mounted sections. Tree selection and the imperative navigation handle scroll to operations that are not currently mounted. Scroll tracking reads the current mounted sections. Hosts should use the navigation handle instead of looking up off-screen DOM anchors.
+
+### Resource limits (0.1.18)
+
+Schema-generated examples share a 10,000-node traversal budget across object
+properties, composition branches, and local references, in addition to the depth
+limit. This prevents a small, repeatedly referenced schema from expanding into
+an out-of-memory failure in documentation preview or export. Generated examples
+may omit remaining properties when the budget is exhausted; the source schema
+and explicit examples are unchanged.
